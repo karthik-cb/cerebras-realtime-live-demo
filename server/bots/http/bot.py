@@ -1,4 +1,5 @@
 import asyncio
+import ssl
 from typing import Any, AsyncGenerator, List, Tuple
 
 from bots.http.frame_serializer import BotFrameSerializer
@@ -18,12 +19,13 @@ from pipecat.pipeline.task import PipelineTask
 from pipecat.processors.async_generator import AsyncGeneratorProcessor
 from pipecat.processors.frameworks.rtvi import (
     RTVIActionRun,
-    RTVIBotLLMProcessor,
     RTVIMessage,
     RTVIProcessor,
 )
-from pipecat.services.ai_services import OpenAILLMContext
-from pipecat.services.google import GoogleLLMContext, GoogleLLMService
+from pipecat.services.llm_service import OpenAILLMContext
+from pipecat.services.cerebras.llm import CerebrasLLMService
+from pipecat.adapters.schemas.function_schema import FunctionSchema
+from pipecat.adapters.schemas.tools_schema import ToolsSchema
 
 
 async def http_bot_pipeline(
@@ -34,28 +36,74 @@ async def http_bot_pipeline(
     db: AsyncSession,
     language_code: str = "english",
 ) -> Tuple[AsyncGenerator[Any, None], Any]:
-    llm_api_key = SERVICE_API_KEYS.get("gemini")
+    llm_api_key = SERVICE_API_KEYS.get("cerebras")
     if llm_api_key is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Service `llm` not available in SERVICE_API_KEYS. Please check your environment variables.",
+            detail="Service `cerebras` not available in SERVICE_API_KEYS. Please check your environment variables.",
         )
 
-    llm = GoogleLLMService(
-        api_key=str(SERVICE_API_KEYS["gemini"]),
-        model="gemini-2.0-flash-exp",
+    # Define weather function for tool calling
+    weather_function = FunctionSchema(
+        name="get_current_weather",
+        description="Get current weather information for a specific location",
+        properties={
+            "location": {
+                "type": "string",
+                "description": "City and state, e.g. San Francisco, CA"
+            },
+            "format": {
+                "type": "string",
+                "enum": ["celsius", "fahrenheit"],
+                "description": "Temperature unit to use"
+            }
+        },
+        required=["location", "format"]
     )
+    
+    tools = ToolsSchema(standard_tools=[weather_function])
+    
+    llm = CerebrasLLMService(
+        api_key=str(SERVICE_API_KEYS["cerebras"]),
+        model="gpt-oss-120b",
+        temperature=0.7,
+        max_tokens=1000
+    )
+    
+    # Register weather function handler
+    async def fetch_weather(params):
+        location = params.arguments["location"]
+        format_type = params.arguments["format"]
+        
+        # Simulate weather data (in a real app, you'd call a weather API)
+        weather_data = {
+            "location": location,
+            "temperature": "75°F" if format_type == "fahrenheit" else "24°C",
+            "conditions": "sunny",
+            "humidity": "65%",
+            "wind": "5 mph"
+        }
+        
+        logger.info(f"🌤️ Weather function called for {location} in {format_type}")
+        logger.info(f"🌤️ Weather data: {weather_data}")
+        
+        # Return the weather information
+        await params.result_callback(weather_data)
+    
+    llm.register_function("get_current_weather", fetch_weather)
 
-    tools = NOT_GIVEN
-    context = OpenAILLMContext(messages, tools)
+    context = OpenAILLMContext(
+        messages=[
+            {
+                "role": "system",
+                "content": "You are a helpful assistant with access to weather information. When users ask about weather, use the get_current_weather function to fetch real-time data. Keep responses concise and always mention that you're checking the weather when using the function."
+            }
+        ] + messages,
+        tools=tools
+    )
     context_aggregator = llm.create_context_aggregator(
         context, assistant_expect_stripped_words=False
     )
-    # Terrible hack. Fix this by making create_context_aggregator downcast the context
-    # automatically. But think through that code first to make sure there won't be
-    # any unintended consequences.
-    if isinstance(llm, GoogleLLMService):
-        GoogleLLMContext.upgrade_to_google(context)
     user_aggregator = context_aggregator.user()
     assistant_aggregator = context_aggregator.assistant()
 
@@ -73,15 +121,11 @@ async def http_bot_pipeline(
     # Processing
     #
 
-    # This will send `bot-llm-*` messages.
-    rtvi_bot_llm = RTVIBotLLMProcessor()
-
     processors = [
         rtvi,
         user_aggregator,
         storage.create_processor(),
         llm,
-        rtvi_bot_llm,
         async_generator,
         assistant_aggregator,
         storage.create_processor(exit_on_endframe=True),

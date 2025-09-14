@@ -56,6 +56,14 @@ class Conversation(Base):
         )
         return result.scalars().first()
 
+    @classmethod
+    async def create_conversation(cls, db: AsyncSession):
+        conversation = Conversation()
+        db.add(conversation)
+        await db.commit()
+        await db.refresh(conversation)
+        return conversation
+
 
 class Message(Base):
     __tablename__ = "messages"

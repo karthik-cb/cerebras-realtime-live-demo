@@ -5,7 +5,7 @@ from pipecat.frames.frames import EndFrame
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.task import PipelineTask
 from pipecat.processors.frameworks.rtvi import RTVIProcessor
-from pipecat.transports.services.daily import DailyTransport
+from pipecat.transports.daily.transport import DailyTransport
 
 
 async def bot_error_pipeline_task(

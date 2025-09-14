@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from pipecat.frames.frames import EndFrame, Frame, TransportMessageUrgentFrame
 from pipecat.processors.frame_processor import FrameDirection, FrameProcessor
-from pipecat.services.openai import OpenAILLMContext, OpenAILLMContextFrame
+from pipecat.processors.aggregators.openai_llm_context import OpenAILLMContext, OpenAILLMContextFrame
 
 
 class RTVIItemStoredMessageData(BaseModel):

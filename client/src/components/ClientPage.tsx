@@ -17,7 +17,6 @@ import emitter from "@/lib/eventEmitter";
 import { RTVIClient } from "@pipecat-ai/client-js";
 import { RTVIClientAudio, RTVIClientProvider } from "@pipecat-ai/client-react";
 import { DailyTransport } from "@pipecat-ai/daily-transport";
-import { GeminiLiveWebsocketTransport } from "@pipecat-ai/gemini-live-websocket-transport";
 import {
   ArrowDownIcon,
   AudioWaveformIcon,
@@ -37,10 +36,11 @@ export function ClientPage() {
     conversationId,
     conversationType,
     setConversationType,
-    geminiApiKey,
     webrtcEnabled,
     websocketEnabled,
   } = useAppState();
+
+  console.log('ClientPage - websocketEnabled:', websocketEnabled, 'webrtcEnabled:', webrtcEnabled);
 
   const { conversation, isFetching } = useConversation(conversationId);
   const messages = conversation?.messages ?? [];
@@ -64,22 +64,30 @@ export function ClientPage() {
 
   useEffect(() => {
     if (!conversationType) {
-      setClient((prevClient) => {
+      setClient((prevClient: RTVIClient | undefined) => {
         if (prevClient?.connected) prevClient?.disconnect();
         return undefined;
       });
       return;
     }
 
+    // Choose transport based on conversation type and available services
+    let transport;
+    if (conversationType === "voice-to-voice" && webrtcEnabled) {
+      // Use WebRTC (Daily) for voice-to-voice conversations
+      transport = new DailyTransport();
+    } else if (conversationType === "text-voice" && websocketEnabled) {
+      // Use WebSocket for text-voice conversations
+      transport = new DailyTransport(); // For now, use Daily for both
+    } else {
+      // Fallback to Daily transport
+      transport = new DailyTransport();
+    }
+
     const newClient = new RTVIClient({
       enableCam: false,
       enableMic: conversationType === "voice-to-voice",
-      transport:
-        conversationType === "voice-to-voice"
-          ? new GeminiLiveWebsocketTransport({
-              api_key: geminiApiKey,
-            })
-          : new DailyTransport(),
+      transport: transport,
       params: {
         baseUrl: import.meta.env.VITE_SERVER_URL,
         endpoints: {
@@ -95,7 +103,7 @@ export function ClientPage() {
     });
 
     setClient(newClient);
-  }, [conversationType, geminiApiKey]);
+  }, [conversationType]);
 
   useEffect(() => {
     if (!client || !conversationId) return;
@@ -224,7 +232,7 @@ export function ClientPage() {
                 >
                   {!websocketEnabled && (
                     <div className="bg-red-200 self-stretch absolute -top-4 left-10 right-10 z-10 rounded-full text-xs py-2 uppercase tracking-wider text-red-900">
-                      Missing GEMINI_API_KEY
+                      Missing DEEPGRAM_API_KEY or CEREBRAS_API_KEY
                     </div>
                   )}
                   <div className="flex items-center justify-center bg-sky-100 text-sky-400 rounded-full">
@@ -232,10 +240,10 @@ export function ClientPage() {
                   </div>
                   <div className="flex flex-col gap-2">
                     <strong className="block mt-4 text-lg">
-                      WebSocket Voice-to-Voice
+                      Real-Time Voice AI Agent
                     </strong>
                     <span className="font-light text-neutral-500">
-                      Use your mic to talk with Gemini using a WebSocket.
+                      Use your mic to talk with our AI agent using Deepgram STT, Cerebras LLM, and Deepgram TTS.
                     </span>
                   </div>
                   <span className="opacity-50 inline-flex gap-1 items-center mt-4">
@@ -311,7 +319,7 @@ export function ClientPage() {
         {/* Chat controls */}
         {conversationType === "text-voice" && (
           <div className="flex-none bg-background sticky bottom-0 w-full z-10">
-            <ChatControls vision />
+            <ChatControls />
             {/* Prevents scroll content from showing up below chat controls */}
             <div className="h-4 bg-background w-full" />
           </div>

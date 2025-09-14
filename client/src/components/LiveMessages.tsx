@@ -16,7 +16,6 @@ import {
   BotLLMTextData,
   BotTTSTextData,
   RTVIEvent,
-  StorageItemStoredData,
   TranscriptData,
 } from "@pipecat-ai/client-js";
 import { useRTVIClient, useRTVIClientEvent } from "@pipecat-ai/client-react";
@@ -24,6 +23,10 @@ import { v4 as uuidv4 } from "uuid";
 
 interface LiveMessage extends Message {
   final?: boolean;
+}
+
+interface StorageItemStoredData {
+  items: Array<Message["content"]>;
 }
 
 interface Props {
@@ -315,7 +318,7 @@ export default function LiveMessages({
 
   useRTVIClientEvent(RTVIEvent.Disconnected, revalidateAndRefresh);
   useRTVIClientEvent(
-    RTVIEvent.StorageItemStored,
+    RTVIEvent.StorageItemStored as any,
     useCallback(
       (data: StorageItemStoredData) => {
         const items = data.items as Array<Message["content"]>;

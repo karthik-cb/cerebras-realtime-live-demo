@@ -13,7 +13,6 @@ interface AppStateContextValue {
   setInteractionMode: Dispatch<SetStateAction<InteractionMode>>;
   searchQuery: string;
   setSearchQuery: Dispatch<SetStateAction<string>>;
-  geminiApiKey: string;
   webrtcEnabled: boolean;
   websocketEnabled: boolean;
 }
@@ -29,7 +28,6 @@ export const AppStateContext = createContext<AppStateContextValue>({
   setInteractionMode: noop,
   searchQuery: "",
   setSearchQuery: noop,
-  geminiApiKey: "",
   webrtcEnabled: false,
   websocketEnabled: false,
 });

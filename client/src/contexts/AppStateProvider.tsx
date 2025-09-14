@@ -10,14 +10,12 @@ const C = "c";
 const Q = "q";
 
 interface Props {
-  geminiApiKey: string;
   websocketEnabled: boolean;
   webrtcEnabled: boolean;
 }
 
 export const AppStateProvider: React.FC<React.PropsWithChildren<Props>> = ({
   children,
-  geminiApiKey,
   webrtcEnabled,
   websocketEnabled,
 }) => {
@@ -65,7 +63,6 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<Props>> = ({
         setInteractionMode,
         searchQuery: deferredSearchQuery,
         setSearchQuery,
-        geminiApiKey,
         webrtcEnabled,
         websocketEnabled,
       }}

@@ -5,6 +5,11 @@ env/
 .env.**
 venv
 .venv
+.rltmenv
+rltmenv/
+.rltmenv.**
+rltmenv
+.rltmenv
 .idea
 .DS_Store
 __pycache__/

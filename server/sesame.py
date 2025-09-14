@@ -2,9 +2,11 @@ import asyncio
 import functools
 import os
 import shutil
+import ssl
 import subprocess
 from pathlib import Path
 from typing import Callable, Dict, Literal
+
 
 import typer
 from common.database import default_session_factory
@@ -199,22 +201,33 @@ def init():
             raise typer.Exit()
 
     api_keys_panel = Panel(
-        "This app can run using the following APIs:\n\n"
-        "- Google Gemini (voice-to-voice)\n"
-        "- Optional: Daily.co (WebRTC voice, vision and text)\n",
+        "This app uses the following APIs for the TTS-LLM-STT pipeline:\n\n"
+        "- Deepgram (Speech-to-Text and Text-to-Speech)\n"
+        "- Cerebras (Large Language Model)\n"
+        "- Optional: Daily.co (WebRTC voice, vision and text)\n"
+        "- Optional: Google Gemini (legacy support)\n",
         title="[white bold]Enter API Keys",
         border_style="white",
     )
     console.print("\n", api_keys_panel, "\n")
 
-    # 1. Ask for Gemini API key
-    gemini_api_key = Prompt.ask("Enter your Gemini API key")
+    # 1. Ask for Deepgram API key (required)
+    deepgram_api_key = Prompt.ask("Enter your Deepgram API key (required for STT and TTS)")
 
-    # 2. Optional: ask for Daily API key
+    # 2. Ask for Cerebras API key (required)
+    cerebras_api_key = Prompt.ask("Enter your Cerebras API key (required for LLM)")
+
+    # 3. Optional: ask for Daily API key
     if Confirm.ask("Enable real-time voice and vision features with Daily.co?"):
         daily_api_key = Prompt.ask("Enter your Daily API key")
     else:
         daily_api_key = ""
+
+    # 4. Optional: ask for Gemini API key (legacy support)
+    if Confirm.ask("Enable legacy Gemini support (optional)?"):
+        gemini_api_key = Prompt.ask("Enter your Gemini API key")
+    else:
+        gemini_api_key = ""
 
     action = Prompt.ask(
         "How would you like to handle these updates?",
@@ -222,7 +235,7 @@ def init():
         default="both",
     )
 
-    console.print("\nAPI keys entered successfully", style="green bold")
+    console.print("\nTTS-LLM-STT pipeline API keys entered successfully", style="green bold")
 
     table = Table(show_header=False, box=None, padding=(0, 2), collapse_padding=True)
 
@@ -239,7 +252,12 @@ def init():
     console.print()
 
     handle_env_updates(
-        {"GEMINI_API_KEY": gemini_api_key, "DAILY_API_KEY": daily_api_key},
+        {
+            "DEEPGRAM_API_KEY": deepgram_api_key,
+            "CEREBRAS_API_KEY": cerebras_api_key,
+            "DAILY_API_KEY": daily_api_key,
+            "GEMINI_API_KEY": gemini_api_key,
+        },
         action=action,
         init_mode=True,
     )

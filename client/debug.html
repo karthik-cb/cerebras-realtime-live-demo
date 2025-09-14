@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Test</title>
+</head>
+<body>
+    <h1>Debug Test</h1>
+    <div id="output"></div>
+    
+    <script>
+        const serverUrl = 'http://127.0.0.1:7860/api';
+        console.log('Testing fetch to:', serverUrl);
+        
+        fetch(`${serverUrl}/`)
+            .then(response => {
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(json => {
+                console.log('Server response:', json);
+                const wsEnabled = json?.["websocket-enabled"] ?? false;
+                const webrtcEnabled = json?.["webrtc-enabled"] ?? false;
+                console.log('websocketEnabled:', wsEnabled);
+                console.log('webrtcEnabled:', webrtcEnabled);
+                
+                document.getElementById('output').innerHTML = `
+                    <p>Server response: ${JSON.stringify(json, null, 2)}</p>
+                    <p>websocketEnabled: ${wsEnabled}</p>
+                    <p>webrtcEnabled: ${webrtcEnabled}</p>
+                `;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('output').innerHTML = `<p>Error: ${error.message}</p>`;
+            });
+    </script>
+</body>
+</html>

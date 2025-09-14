@@ -13,9 +13,14 @@ router.include_router(bots_router, tags=["Bots"])
 
 @router.get("/", response_class=JSONResponse)
 async def config():
-    # Note: do not send gemini-api-key in production (key will be exposed to the client.) Please see README.
+    # Note: do not send api keys in production (keys will be exposed to the client.) Please see README.
     return {
-        "websocket-enabled": bool(SERVICE_API_KEYS["gemini"]),
+        "websocket-enabled": bool(SERVICE_API_KEYS["deepgram"] and SERVICE_API_KEYS["cerebras"]),
         "webrtc-enabled": bool(SERVICE_API_KEYS["daily"]),
+        "tts-llm-stt-enabled": bool(SERVICE_API_KEYS["deepgram"] and SERVICE_API_KEYS["cerebras"]),
+        "deepgram-api-key": SERVICE_API_KEYS["deepgram"],
+        "cerebras-api-key": SERVICE_API_KEYS["cerebras"],
+        "daily-api-key": SERVICE_API_KEYS["daily"],
+        # Legacy support
         "gemini-api-key": SERVICE_API_KEYS["gemini"],
     }

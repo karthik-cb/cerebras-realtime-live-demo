@@ -10,26 +10,40 @@ import { useEffect, useState } from "react";
 function App() {
   const [websocketEnabled, setWebsocketEnabled] = useState<boolean>();
   const [webrtcEnabled, setWebrtcEnabled] = useState<boolean>();
-  const [geminiApiKey, setGeminiApiKey] = useState<string>("");
 
   useEffect(() => {
     const abort = new AbortController();
-    fetch(`${import.meta.env.VITE_SERVER_URL}/`, {
+    const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://127.0.0.1:7860/api';
+    console.log('Fetching from:', serverUrl);
+    fetch(`${serverUrl}/`, {
       signal: abort.signal,
     })
-      .then((response) => response.json())
-      .then((json) => {
-        setWebsocketEnabled(json?.["websocket-enabled"] ?? false);
-        setWebrtcEnabled(json?.["webrtc-enabled"] ?? false);
-        setGeminiApiKey(json?.["gemini-api-key"] ?? "");
+      .then((response) => {
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
       })
-      .catch(() => {
+      .then((json) => {
+        console.log('Server response:', json);
+        const wsEnabled = json?.["websocket-enabled"] ?? false;
+        const webrtcEnabled = json?.["webrtc-enabled"] ?? false;
+        console.log('Setting websocketEnabled to:', wsEnabled);
+        console.log('Setting webrtcEnabled to:', webrtcEnabled);
+        setWebsocketEnabled(wsEnabled);
+        setWebrtcEnabled(webrtcEnabled);
+      })
+      .catch((error) => {
+        console.error('Error fetching server config:', error);
         setWebsocketEnabled(false);
         setWebrtcEnabled(false);
-        setGeminiApiKey("");
       });
     return () => abort.abort();
   }, []);
+
+  console.log('App render - websocketEnabled:', websocketEnabled, 'webrtcEnabled:', webrtcEnabled);
 
   if (websocketEnabled === undefined && webrtcEnabled === undefined) {
     return (
@@ -44,8 +58,9 @@ function App() {
   if (!websocketEnabled && !webrtcEnabled) {
     return (
       <ErrorPage title="Missing configuration">
-        The server is missing both <code>GEMINI_API_KEY</code> and{" "}
-        <code>DAILY_API_KEY</code>.
+        The server is missing required API keys for the TTS-LLM-STT pipeline. 
+        Please ensure <code>DEEPGRAM_API_KEY</code> and <code>CEREBRAS_API_KEY</code> are set.
+        For WebRTC features, <code>DAILY_API_KEY</code> is also required.
       </ErrorPage>
     );
   }
@@ -53,7 +68,6 @@ function App() {
   return (
     <QueryClientProvider>
       <AppStateProvider
-        geminiApiKey={geminiApiKey}
         webrtcEnabled={webrtcEnabled ?? false}
         websocketEnabled={websocketEnabled ?? false}
       >

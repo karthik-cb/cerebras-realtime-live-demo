@@ -91,11 +91,49 @@ async def connect(
 
     # Check which bot profile is requested and return a valid auth bundle to the RTVI client.
 
-    # To support client transports such as Gemini that connect directly via the client,
-    # we just return a 200 OK response with the service key.
-    # Note: this is not recommended for production as it exposes the API key.
+    # For voice-to-voice conversations, we need to create a Daily room
+    # since we're using Daily transport for the TTS-LLM-STT pipeline
     if params.bot_profile == "voice-to-voice":
-        return JSONResponse({"success": True})
+        try:
+            # Check that we have a valid daily API key
+            transport_api_key = SERVICE_API_KEYS["daily"]
+            
+            if not transport_api_key:
+                logger.error("Missing API key for transport service")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Missing API key for transport service",
+                )
+            
+            # Create a conversation first if one doesn't exist
+            if not params.conversation_id:
+                logger.info("Creating new conversation for voice-to-voice")
+                conversation = await Conversation.create_conversation(db)
+                params.conversation_id = conversation.conversation_id
+                logger.info(f"Created conversation with ID: {params.conversation_id}")
+            
+            logger.info("Creating Daily room...")
+            room, user_token, bot_token = await bot_create(transport_api_key)
+            logger.info(f"Created Daily room: {room.url}")
+            
+            # Launch the bot with the TTS-LLM-STT pipeline
+            logger.info("Launching bot...")
+            bot_launch(params, config, room.url, bot_token)
+            logger.info("Bot launched successfully")
+            
+            return JSONResponse(
+                {
+                    "room_name": room.name,
+                    "room_url": room.url,
+                    "token": user_token,
+                }
+            )
+        except Exception as e:
+            logger.error(f"Error in voice-to-voice setup: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error setting up voice-to-voice: {str(e)}",
+            )
 
     if not params.conversation_id:
         logger.error("No conversation ID passed to connect")

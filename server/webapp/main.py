@@ -1,6 +1,15 @@
 import os
+import ssl
 import sys
 from contextlib import asynccontextmanager
+
+# Configure SSL context to disable certificate verification for development
+ssl_context = ssl.create_default_context()
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
+
+# Set the default SSL context for the entire process
+ssl._create_default_https_context = lambda: ssl_context
 
 from common.database import DatabaseSessionFactory
 from common.models import Base

@@ -11,8 +11,8 @@ from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.runner import PipelineRunner
 from pipecat.pipeline.task import PipelineTask
 from pipecat.processors.aggregators.openai_llm_context import OpenAILLMContextFrame
-from pipecat.services.ai_services import OpenAILLMContext
-from pipecat.services.google import GoogleLLMContext, GoogleLLMService
+from pipecat.services.llm_service import OpenAILLMContext
+from pipecat.services.cerebras.llm import CerebrasLLMService
 
 
 async def generate_summary_with_llm(messages: List[Dict[str, str]]) -> Optional[str]:
@@ -29,14 +29,17 @@ async def generate_summary_with_llm(messages: List[Dict[str, str]]) -> Optional[
     Raises:
         ValueError: If LLM response is empty or invalid
     """
-    llm_api_key = SERVICE_API_KEYS["gemini"]
+    llm_api_key = SERVICE_API_KEYS["cerebras"]
 
     if llm_api_key is None:
         return None
 
-    llm = GoogleLLMService(
-        api_key=str(SERVICE_API_KEYS["gemini"]),
-        model="gemini-2.0-flash-exp",
+    llm = CerebrasLLMService(
+        api_key=str(SERVICE_API_KEYS["cerebras"]),
+        model="gpt-oss-120b",
+        base_url="https://api.cerebras.ai/v1",
+        temperature=0.7,
+        max_tokens=1000
     )
 
     try:

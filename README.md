@@ -1,23 +1,75 @@
-# Chat Application Starter Kit — Gemini Multimodal Live API + Pipecat
+# Chat Application Starter Kit — TTS-LLM-STT Pipeline + Pipecat
 
-This repo is a starter kit showing how to build a full application using the Pipecat Web SDK and the Gemini Multimodal Live API.
+This repo is a starter kit showing how to build a full application using the Pipecat Web SDK with a turbocharged TTS-LLM-STT pipeline using Deepgram and Cerebras services.
 
 <img width="500px" height="auto" src="./image.png">
 
 **Features:**
 
+- **TTS-LLM-STT Pipeline**: Deepgram STT + Cerebras LLM + Deepgram TTS
+- **Function Calling**: Weather function with voice + visual feedback
 - Ephemeral WebSocket voice mode
-- Text and image HTTP chat mode
+- Text and image HTTP chat mode  
 - WebRTC voice, camera, and screenshare chat mode
 - Persistent conversation storage to a SQLite database
+- Configurable models and voices
+- Low-latency real-time audio processing
 
-The Pipecat SDK supports both WebSockets and WebRTC. WebSockets are great for protoyping, and for server-to-server communication.
+The Pipecat SDK supports both WebSockets and WebRTC. WebSockets are great for prototyping, and for server-to-server communication.
 
 For realtime apps in production, WebRTC is the right choice. WebRTC was designed specifically for low-latency audio and video. (See [this explainer](https://www.daily.co/videosaurus/websockets-and-webrtc/) for more about WebRTC and WebSockets.)
 
+## 🚀 Quick Start
+
+### Option 1: Automated Setup
+
+```bash
+# Run the setup script
+python setup_tts_llm_stt.py
+```
+
+### Option 2: Manual Setup
+
+See the [TTS-LLM-STT README](TTS_LLM_STT_README.md) for detailed setup instructions.
+
+## 🔧 API Keys Required
+
+- **Deepgram API Key**: For STT and TTS services
+- **Cerebras API Key**: For LLM service  
+- **Daily API Key**: For WebRTC (optional)
+
+## 🔐 SSL Certificate Setup (macOS)
+
+If you encounter SSL certificate errors on macOS, you need to extract system certificates:
+
+```bash
+# Extract certificates from system keychains
+security find-certificate -a -p /System/Library/Keychains/SystemRootCertificates.keychain > cacerts.pem
+security find-certificate -a -p /Library/Keychains/System.keychain >> cacerts.pem
+mv cacerts.pem ~/Library/cacerts.pem
+
+# Set environment variables
+export REQUESTS_CA_BUNDLE="$HOME/Library/cacerts.pem"
+export SSL_CERT_FILE="$HOME/Library/cacerts.pem"
+```
+
+For detailed instructions, see [SSL_CERTIFICATE_FIX.md](SSL_CERTIFICATE_FIX.md).
+
+## 🛠️ Function Calling
+
+The voice assistant includes weather function calling capabilities:
+
+- **Ask about weather**: "What's the weather in San Francisco?"
+- **Voice + Visual feedback**: Function calls are logged and spoken
+- **Real-world tasks**: Demonstrates how voice assistants can perform actual tasks
+
+For detailed function calling documentation, see [FUNCTION_CALLING_GUIDE.md](FUNCTION_CALLING_GUIDE.md).
+
 ## Getting setup
 
-➡️ You will need a [Gemini API key](https://aistudio.google.com/app/apikey).
+➡️ You will need a [Deepgram API key](https://console.deepgram.com/) for STT and TTS services.
+
+➡️ You will need a [Cerebras API key](https://cloud.cerebras.ai/) for LLM services.
 
 ➡️ To use the WebRTC voice mode, you'll also need a [Daily API key](https://dashboard.daily.co/u/signup) (optional).
 

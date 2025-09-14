@@ -1,5 +1,6 @@
 import asyncio
 import os
+import ssl
 import sys
 from multiprocessing import Process
 from typing import Awaitable, Callable
@@ -16,7 +17,7 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pipecat.pipeline.task import PipelineParams, PipelineTask
-from pipecat.transports.services.helpers.daily_rest import (
+from pipecat.transports.daily.utils import (
     DailyRESTHelper,
     DailyRoomParams,
 )
@@ -25,7 +26,13 @@ MAX_SESSION_TIME = int(os.getenv("BOT_MAX_VOICE_SESSION_TIME", 15 * 60)) or 15 *
 
 
 async def _cleanup(room_url: str, config: BotConfig):
-    async with aiohttp.ClientSession() as session:
+    # Create SSL context that doesn't verify certificates (for development only)
+    ssl_context = ssl.create_default_context()
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = ssl.CERT_NONE
+    
+    connector = aiohttp.TCPConnector(ssl=ssl_context)
+    async with aiohttp.ClientSession(connector=connector) as session:
         debug_room = os.getenv("USE_DEBUG_ROOM", None)
         if debug_room:
             return
@@ -107,7 +114,13 @@ def _bot_process(
 
 
 async def bot_create(daily_api_key: str):
-    async with aiohttp.ClientSession() as session:
+    # Create SSL context that doesn't verify certificates (for development only)
+    ssl_context = ssl.create_default_context()
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = ssl.CERT_NONE
+    
+    connector = aiohttp.TCPConnector(ssl=ssl_context)
+    async with aiohttp.ClientSession(connector=connector) as session:
         daily_rest_helper = DailyRESTHelper(
             daily_api_key=daily_api_key,
             aiohttp_session=session,

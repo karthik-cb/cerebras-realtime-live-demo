@@ -27,28 +27,21 @@ import { ImageContent, Message } from "@/lib/messages";
 import { cn } from "@/lib/utils";
 import { RTVIClient, RTVIEvent, RTVIMessage } from "@pipecat-ai/client-js";
 import {
-  RTVIClientVideo,
   useRTVIClient,
   useRTVIClientEvent,
-  useRTVIClientMediaTrack,
   useRTVIClientTransportState,
   VoiceVisualizer,
 } from "@pipecat-ai/client-react";
 import {
   AlertCircleIcon,
-  ArrowLeftToLineIcon,
-  ArrowRightToLineIcon,
   ArrowUpIcon,
   LoaderCircle,
   LoaderCircleIcon,
-  Maximize2Icon,
   MicIcon,
   MicOffIcon,
-  Minimize2Icon,
   Speech,
   TriangleAlertIcon,
   UploadCloudIcon,
-  WebcamIcon,
   X,
   XIcon,
 } from "lucide-react";
@@ -75,22 +68,16 @@ import {
 
 interface Props {
   onChangeMode?: (isVoiceMode: boolean) => void;
-  vision?: boolean;
 }
 
-type VideoSize = "small" | "large";
-type VideoPlacement = "left" | "right";
 
 type UploadStatus = "done" | "error";
 
-const ChatControls: React.FC<Props> = ({ onChangeMode, vision = false }) => {
+const ChatControls: React.FC<Props> = ({ onChangeMode }) => {
   const { conversationId, setConversationId, webrtcEnabled } = useAppState();
 
   const [isVoiceMode, setIsVoiceMode] = useState(false);
-  const [isCamMuted, setIsCamMuted] = useState(true);
   const [isMicMuted, setIsMicMuted] = useState(false);
-  const [videoSize, setVideoSize] = useState<VideoSize>("small");
-  const [videoPlacement, setVideoPlacement] = useState<VideoPlacement>("right");
   const [, setSelectedImages] = useState<File[]>([]); // Track selected image files
   const [previewUrls, setPreviewUrls] = useState<string[]>([]); // Track preview URLs
   const [imageZoom, setImageZoom] = useState(false);
@@ -255,7 +242,6 @@ const ChatControls: React.FC<Props> = ({ onChangeMode, vision = false }) => {
   const handleDisconnect = useCallback(() => {
     setIsVoiceMode(false);
     setIsMicMuted(false);
-    rtviClient?.enableCam(false);
     rtviClient?.enableMic(false);
     onChangeMode?.(false);
     setEndDate(null);
@@ -301,13 +287,6 @@ const ChatControls: React.FC<Props> = ({ onChangeMode, vision = false }) => {
     ),
   );
 
-  // Toggle between cam mute and unmute in voice mode
-  const handleCamToggle = useCallback(() => {
-    setIsCamMuted((muted) => {
-      rtviClient?.enableCam(muted);
-      return !muted;
-    });
-  }, [rtviClient]);
 
   // Toggle between mic mute and unmute in voice mode
   const handleMicToggle = useCallback(() => {
@@ -457,8 +436,6 @@ const ChatControls: React.FC<Props> = ({ onChangeMode, vision = false }) => {
     "bg-gradient-to-t from-background absolute w-full bottom-full pt-4 pb-2 flex gap-2 items-center justify-center z-10";
 
   const ToggledMicIcon = isMicMuted ? MicOffIcon : MicIcon;
-
-  const camTrack = useRTVIClientMediaTrack("video", "local");
 
   const isConnecting =
     transportState === "authenticating" ||
@@ -645,64 +622,6 @@ const ChatControls: React.FC<Props> = ({ onChangeMode, vision = false }) => {
           </Button>
         </form>
 
-        {/* Video preview */}
-        {vision && isVoiceMode && !isCamMuted && (
-          <div
-            className={cn(
-              "absolute shadow-lg z-20 bottom-full -translate-y-2 max-w-40 bg-secondary rounded-2xl aspect-video overflow-hidden transition-all",
-              {
-                "max-w-80": videoSize === "large",
-                "left-0": videoPlacement === "left",
-                "right-0": videoPlacement === "right",
-              },
-            )}
-          >
-            <RTVIClientVideo
-              participant="local"
-              fit="cover"
-              className="w-full h-full"
-            />
-            {!camTrack && (
-              <div className="absolute top-0 left-0 z-10 w-full h-full flex items-center justify-center">
-                <LoaderCircleIcon className="animate-spin" size={16} />
-              </div>
-            )}
-            <Button
-              className="absolute top-1 right-1 rounded-full !text-background bg-foreground/10 hover:bg-foreground/50 focus-visible:bg-foreground/50"
-              size="icon"
-              variant="ghost"
-              onClick={() =>
-                setVideoSize((vs) => (vs === "small" ? "large" : "small"))
-              }
-            >
-              {videoSize === "small" ? (
-                <Maximize2Icon size={16} />
-              ) : (
-                <Minimize2Icon size={16} />
-              )}
-            </Button>
-            <Button
-              className={cn(
-                "absolute bottom-1 rounded-full !text-background bg-foreground/10 hover:bg-foreground/50 focus-visible:bg-foreground/50",
-                {
-                  "right-1": videoPlacement === "left",
-                  "left-1": videoPlacement === "right",
-                },
-              )}
-              size="icon"
-              variant="ghost"
-              onClick={() =>
-                setVideoPlacement((vp) => (vp === "left" ? "right" : "left"))
-              }
-            >
-              {videoPlacement === "left" ? (
-                <ArrowRightToLineIcon size={16} />
-              ) : (
-                <ArrowLeftToLineIcon size={16} />
-              )}
-            </Button>
-          </div>
-        )}
 
         {/* Chat Controls */}
         <div className="flex gap-2 justify-between sm:grid sm:grid-cols-3">
@@ -733,30 +652,6 @@ const ChatControls: React.FC<Props> = ({ onChangeMode, vision = false }) => {
               </Tooltip>
             </TooltipProvider> */}
 
-            {/* Cam button for mute/unmute */}
-            {vision && isVoiceMode && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="secondary-outline"
-                      onClick={handleCamToggle}
-                      className={cn("rounded-full", {
-                        "bg-primary hover:bg-primary text-primary-foreground":
-                          !isCamMuted,
-                      })}
-                    >
-                      <WebcamIcon size={24} />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent className="bg-background text-foreground shadow-sm">
-                    {isCamMuted ? "Turn on camera" : "Turn off camera"}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
           </div>
 
           <div className="mr-auto sm:mr-0 sm:justify-self-center">
