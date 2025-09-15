@@ -6,6 +6,6 @@ python-dotenv
 pydantic
 argon2-cffi
 sqlalchemy[aiosqlite]
-pipecat-ai==0.0.85
+pipecat-ai[mcp]==0.0.85
 jinja2
 cryptography

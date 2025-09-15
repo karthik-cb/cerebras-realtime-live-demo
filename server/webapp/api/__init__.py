@@ -1,6 +1,7 @@
 from common.config import SERVICE_API_KEYS
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
+from bots.models_config import get_available_models, get_default_models
 
 from .bots import router as bots_router
 from .conversations import router as conversations_router
@@ -23,4 +24,12 @@ async def config():
         "daily-api-key": SERVICE_API_KEYS["daily"],
         # Legacy support
         "gemini-api-key": SERVICE_API_KEYS["gemini"],
+    }
+
+@router.get("/models", response_class=JSONResponse)
+async def get_models():
+    """Get available models for STT, LLM, TTS, and MCP services"""
+    return {
+        "models": get_available_models(),
+        "defaults": get_default_models(),
     }

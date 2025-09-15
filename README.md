@@ -8,6 +8,7 @@ This repo is a starter kit showing how to build a full application using the Pip
 
 - **TTS-LLM-STT Pipeline**: Deepgram STT + Cerebras LLM + Deepgram TTS
 - **Function Calling**: Weather function with voice + visual feedback
+- **MCP Integration**: Connect to external MCP servers for standardized tool access
 - Ephemeral WebSocket voice mode
 - Text and image HTTP chat mode  
 - WebRTC voice, camera, and screenshare chat mode
@@ -24,9 +25,10 @@ For realtime apps in production, WebRTC is the right choice. WebRTC was designed
 ### Option 1: Automated Setup
 
 ```bash
-# Run the setup script
+# OPTIONAL: Run the setup script
 python setup_tts_llm_stt.py
 ```
+Follow the sesame.py guide, which is the official way to setup this agent.
 
 ### Option 2: Manual Setup
 
@@ -64,6 +66,17 @@ The voice assistant includes weather function calling capabilities:
 - **Real-world tasks**: Demonstrates how voice assistants can perform actual tasks
 
 For detailed function calling documentation, see [FUNCTION_CALLING_GUIDE.md](FUNCTION_CALLING_GUIDE.md).
+
+## 🔌 MCP Integration
+
+The voice assistant supports [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) for standardized tool access:
+
+- **Filesystem Operations**: Read, write, and list files
+- **Database Access**: Query and manage data
+- **External APIs**: Weather, calendar, and more
+- **Configurable Servers**: Enable/disable via environment variables
+
+For detailed MCP integration documentation, see [MCP_INTEGRATION_GUIDE.md](MCP_INTEGRATION_GUIDE.md).
 
 ## Getting setup
 
@@ -123,6 +136,10 @@ npm run dev
 ```
 
 Visit the URL shown in the terminal. Be sure that both the server and client are running.
+
+### Terminate server process
+To terminate server process, run the code below (replace 7860 with your port number if this differs)
+`kill -9 $(lsof -t -i tcp:7860)`
 
 ## Architecture
 

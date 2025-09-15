@@ -14,7 +14,7 @@ import {
   SheetDescription,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { InteractionMode } from "@/contexts/AppStateContext";
+import { InteractionMode, ModelOption } from "@/contexts/AppStateContext";
 import { useAppState } from "@/hooks/useAppState";
 import emitter from "@/lib/eventEmitter";
 import {
@@ -24,9 +24,11 @@ import {
 } from "@pipecat-ai/client-react";
 import {
   BotIcon,
+  BrainIcon,
   LoaderCircleIcon,
   MicIcon,
   PaletteIcon,
+  SettingsIcon,
   SpeakerIcon,
   TriangleAlertIcon,
   WebcamIcon,
@@ -49,6 +51,9 @@ export default function Settings({ vision }: Props) {
     conversationType,
     interactionMode,
     setInteractionMode,
+    modelPreferences,
+    setModelPreferences,
+    availableModels,
   } = useAppState();
   const [isOpen, setIsOpen] = useState(false);
   const {
@@ -303,6 +308,157 @@ export default function Settings({ vision }: Props) {
               </div>
             </div>
           )}
+
+          {/* AI Model Settings */}
+          <div className="flex flex-col gap-4">
+            <h3 className="text-sm font-semibold mb-2">AI Models</h3>
+            
+            {/* STT Model Selection */}
+            <div className="flex flex-col gap-1">
+              <Label className="text-base font-normal" htmlFor="stt-model">
+                Speech-to-Text Model
+              </Label>
+              <Select
+                onValueChange={(modelId) => 
+                  setModelPreferences(prev => ({ ...prev, stt: modelId }))
+                }
+                value={modelPreferences.stt}
+              >
+                <SelectTrigger className="w-full" id="stt-model">
+                  <MicIcon className="flex-none text-muted" size={24} />
+                  <SelectValue placeholder="Select STT model..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableModels.stt.map((model) => (
+                    <SelectItem key={model.id} value={model.id}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{model.name}</span>
+                        <span className="text-xs text-muted-foreground">{model.description}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* LLM Model Selection */}
+            <div className="flex flex-col gap-1">
+              <Label className="text-base font-normal" htmlFor="llm-model">
+                Language Model
+              </Label>
+              <Select
+                onValueChange={(modelId) => 
+                  setModelPreferences(prev => ({ ...prev, llm: modelId }))
+                }
+                value={modelPreferences.llm}
+              >
+                <SelectTrigger className="w-full" id="llm-model">
+                  <BrainIcon className="flex-none text-muted" size={24} />
+                  <SelectValue placeholder="Select LLM model..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableModels.llm.map((model) => (
+                    <SelectItem key={model.id} value={model.id}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{model.name}</span>
+                        <span className="text-xs text-muted-foreground">{model.description}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* TTS Model Selection */}
+            <div className="flex flex-col gap-1">
+              <Label className="text-base font-normal" htmlFor="tts-model">
+                Text-to-Speech Voice
+              </Label>
+              <Select
+                onValueChange={(modelId) => 
+                  setModelPreferences(prev => ({ ...prev, tts: modelId }))
+                }
+                value={modelPreferences.tts}
+              >
+                <SelectTrigger className="w-full" id="tts-model">
+                  <SpeakerIcon className="flex-none text-muted" size={24} />
+                  <SelectValue placeholder="Select TTS voice..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableModels.tts.map((model) => (
+                    <SelectItem key={model.id} value={model.id}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{model.name}</span>
+                        <span className="text-xs text-muted-foreground">{model.description}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* MCP Servers Selection */}
+            <div className="flex flex-col gap-1">
+              <Label className="text-base font-normal" htmlFor="mcp-servers">
+                MCP Servers
+              </Label>
+              <Select
+                onValueChange={(serverId) => {
+                  const currentMCP = modelPreferences.mcp;
+                  const isSelected = currentMCP.includes(serverId);
+                  const newMCP = isSelected 
+                    ? currentMCP.filter(id => id !== serverId)
+                    : [...currentMCP, serverId];
+                  setModelPreferences(prev => ({ ...prev, mcp: newMCP }));
+                }}
+                value=""
+              >
+                <SelectTrigger className="w-full" id="mcp-servers">
+                  <SettingsIcon className="flex-none text-muted" size={24} />
+                  <SelectValue placeholder="Add MCP server..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableModels.mcp.map((server) => (
+                    <SelectItem 
+                      key={server.id} 
+                      value={server.id}
+                      disabled={!server.enabled}
+                    >
+                      <div className="flex flex-col">
+                        <span className="font-medium">{server.name}</span>
+                        <span className="text-xs text-muted-foreground">{server.description}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {/* Show selected MCP servers */}
+              {modelPreferences.mcp.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {modelPreferences.mcp.map((serverId) => {
+                    const server = availableModels.mcp.find(s => s.id === serverId);
+                    return server ? (
+                      <div
+                        key={serverId}
+                        className="flex items-center gap-1 px-2 py-1 bg-secondary rounded-md text-xs"
+                      >
+                        <span>{server.name}</span>
+                        <button
+                          onClick={() => {
+                            const newMCP = modelPreferences.mcp.filter(id => id !== serverId);
+                            setModelPreferences(prev => ({ ...prev, mcp: newMCP }));
+                          }}
+                          className="ml-1 hover:text-destructive"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ) : null;
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Style Settings */}
           <div className="flex flex-col gap-2">

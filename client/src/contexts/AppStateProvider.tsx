@@ -2,6 +2,8 @@ import {
   AppStateContext,
   ConversationType,
   InteractionMode,
+  ModelPreferences,
+  ModelOption,
 } from "@/contexts/AppStateContext";
 import { useConversation } from "@/hooks/useConversation";
 import { useDeferredValue, useEffect, useState } from "react";
@@ -12,12 +14,19 @@ const Q = "q";
 interface Props {
   websocketEnabled: boolean;
   webrtcEnabled: boolean;
+  availableModels?: {
+    stt: ModelOption[];
+    llm: ModelOption[];
+    tts: ModelOption[];
+    mcp: ModelOption[];
+  };
 }
 
 export const AppStateProvider: React.FC<React.PropsWithChildren<Props>> = ({
   children,
   webrtcEnabled,
   websocketEnabled,
+  availableModels: initialAvailableModels,
 }) => {
   const searchParams = new URLSearchParams(location.search);
   const cid = searchParams.get(C);
@@ -36,6 +45,26 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<Props>> = ({
 
   const [searchQuery, setSearchQuery] = useState(q ?? "");
   const deferredSearchQuery = useDeferredValue(searchQuery);
+
+  // Model preferences state
+  const [modelPreferences, setModelPreferences] = useState<ModelPreferences>({
+    stt: "nova-2-general",
+    llm: "gpt-oss-120b",
+    tts: "aura-luna-en",
+    mcp: ["filesystem"],
+  });
+
+  const [availableModels, setAvailableModels] = useState<{
+    stt: ModelOption[];
+    llm: ModelOption[];
+    tts: ModelOption[];
+    mcp: ModelOption[];
+  }>(initialAvailableModels || {
+    stt: [],
+    llm: [],
+    tts: [],
+    mcp: [],
+  });
 
   const { conversation, isFetched } = useConversation(conversationId);
 
@@ -65,6 +94,10 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<Props>> = ({
         setSearchQuery,
         webrtcEnabled,
         websocketEnabled,
+        modelPreferences,
+        setModelPreferences,
+        availableModels,
+        setAvailableModels,
       }}
     >
       {children}

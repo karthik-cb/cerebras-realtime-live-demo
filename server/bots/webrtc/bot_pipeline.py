@@ -25,6 +25,9 @@ from pipecat.transcriptions.language import Language
 from pipecat.transports.daily.transport import DailyParams, DailyTransport
 from pipecat.adapters.schemas.function_schema import FunctionSchema
 from pipecat.adapters.schemas.tools_schema import ToolsSchema
+from pipecat.services.mcp_service import MCPClient
+from mcp import StdioServerParameters
+from bots.mcp_config import get_enabled_mcp_servers
 
 # SSL Certificate configuration for macOS
 # The proper way to fix SSL issues on macOS is to extract system certificates
@@ -162,6 +165,33 @@ async def bot_pipeline(
     
     llm.register_function("get_current_weather", fetch_weather)
     
+    # Initialize MCP clients for external tools
+    mcp_tools = []
+    enabled_servers = get_enabled_mcp_servers()
+    
+    for server_config in enabled_servers:
+        try:
+            logger.info(f"🔧 Connecting to MCP server: {server_config.name}")
+            mcp_client = MCPClient(server_params=server_config.server_params)
+            
+            # Register MCP tools with the LLM
+            mcp_tools_schema = await mcp_client.register_tools(llm)
+            mcp_tools.append(mcp_tools_schema)
+            logger.info(f"✅ MCP {server_config.name} server connected successfully")
+            logger.info(f"📝 {server_config.description}")
+            
+        except Exception as e:
+            logger.warning(f"⚠️ MCP {server_config.name} server not available: {e}")
+            logger.info(f"💡 To enable {server_config.name} MCP tools, check the server configuration")
+    
+    # Combine weather function with MCP tools
+    all_tools = [weather_function]
+    for mcp_tool_schema in mcp_tools:
+        if hasattr(mcp_tool_schema, 'standard_tools'):
+            all_tools.extend(mcp_tool_schema.standard_tools)
+    
+    combined_tools = ToolsSchema(standard_tools=all_tools)
+    
     # Add event handlers for debugging - using correct event names
     @llm.event_handler("on_started")
     async def on_llm_started(service):
@@ -219,15 +249,15 @@ async def bot_pipeline(
     async def on_tts_error(service, error):
         logger.error(f"🔊 TTS Error: {error}")
     
-    # Create context and aggregators with function calling tools
+    # Create context and aggregators with function calling tools and MCP tools
     context = OpenAILLMContext(
         messages=[
             {
                 "role": "system",
-                "content": "You are a helpful voice assistant with access to weather information. When users ask about weather, use the get_current_weather function to fetch real-time data. Keep responses concise for voice output and always mention that you're checking the weather when using the function."
+                "content": "You are a helpful voice assistant with access to weather information and MCP tools. When users ask about weather, use the get_current_weather function to fetch real-time data. You also have access to MCP tools for file operations and other external services. Keep responses concise for voice output and always mention what you're doing when using functions or tools."
             }
         ] + messages,
-        tools=tools
+        tools=combined_tools
     )
     context_aggregator = llm.create_context_aggregator(context)
     user_aggregator = context_aggregator.user()

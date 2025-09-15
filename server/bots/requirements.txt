@@ -1,2 +1,2 @@
 aiohttp
-pipecat-ai[daily,deepgram,cerebras,openai,silero,websocket]==0.0.85
+pipecat-ai[daily,deepgram,cerebras,openai,silero,websocket,mcp]==0.0.85

@@ -32,23 +32,8 @@ class ServiceConfig:
         "nova-2-voicemail",
         "nova-2-conversationalai",
         "nova-2-medical",
-        "nova-2-drive",
-        "nova-2-automotive",
-        "nova-2-smartgrid",
-        "nova-2-education",
-        "nova-2-custom",
-        "nova-2-multilingual",
-        "nova-2-phonecall-multilingual",
-        "nova-2-meeting-multilingual",
-        "nova-2-conversationalai-multilingual",
-        "nova-2-voicemail-multilingual",
-        "nova-2-finance-multilingual",
-        "nova-2-medical-multilingual",
-        "nova-2-drive-multilingual",
-        "nova-2-automotive-multilingual",
-        "nova-2-smartgrid-multilingual",
-        "nova-2-education-multilingual",
-        "nova-2-custom-multilingual"
+        "nova-2-drivethru",
+        "nova-2-automotive"
     ]
     
     AVAILABLE_LLM_MODELS = [

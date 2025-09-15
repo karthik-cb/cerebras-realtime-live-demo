@@ -26,6 +26,9 @@ from pipecat.services.llm_service import OpenAILLMContext
 from pipecat.services.cerebras.llm import CerebrasLLMService
 from pipecat.adapters.schemas.function_schema import FunctionSchema
 from pipecat.adapters.schemas.tools_schema import ToolsSchema
+from pipecat.services.mcp_service import MCPClient
+from mcp import StdioServerParameters
+from bots.mcp_config import get_enabled_mcp_servers
 
 
 async def http_bot_pipeline(
@@ -91,15 +94,42 @@ async def http_bot_pipeline(
         await params.result_callback(weather_data)
     
     llm.register_function("get_current_weather", fetch_weather)
+    
+    # Initialize MCP clients for external tools
+    mcp_tools = []
+    enabled_servers = get_enabled_mcp_servers()
+    
+    for server_config in enabled_servers:
+        try:
+            logger.info(f"🔧 Connecting to MCP server: {server_config.name}")
+            mcp_client = MCPClient(server_params=server_config.server_params)
+            
+            # Register MCP tools with the LLM
+            mcp_tools_schema = await mcp_client.register_tools(llm)
+            mcp_tools.append(mcp_tools_schema)
+            logger.info(f"✅ MCP {server_config.name} server connected successfully")
+            logger.info(f"📝 {server_config.description}")
+            
+        except Exception as e:
+            logger.warning(f"⚠️ MCP {server_config.name} server not available: {e}")
+            logger.info(f"💡 To enable {server_config.name} MCP tools, check the server configuration")
+    
+    # Combine weather function with MCP tools
+    all_tools = [weather_function]
+    for mcp_tool_schema in mcp_tools:
+        if hasattr(mcp_tool_schema, 'standard_tools'):
+            all_tools.extend(mcp_tool_schema.standard_tools)
+    
+    combined_tools = ToolsSchema(standard_tools=all_tools)
 
     context = OpenAILLMContext(
         messages=[
             {
                 "role": "system",
-                "content": "You are a helpful assistant with access to weather information. When users ask about weather, use the get_current_weather function to fetch real-time data. Keep responses concise and always mention that you're checking the weather when using the function."
+                "content": "You are a helpful assistant with access to weather information and MCP tools. When users ask about weather, use the get_current_weather function to fetch real-time data. You also have access to MCP tools for file operations and other external services. Keep responses concise and always mention what you're doing when using functions or tools."
             }
         ] + messages,
-        tools=tools
+        tools=combined_tools
     )
     context_aggregator = llm.create_context_aggregator(
         context, assistant_expect_stripped_words=False

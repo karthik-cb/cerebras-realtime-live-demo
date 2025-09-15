@@ -4,36 +4,63 @@ import { Layout } from "@/components/Layout";
 import QueryClientProvider from "@/components/QueryClientProvider";
 import { Toaster } from "@/components/ui/toaster";
 import { AppStateProvider } from "@/contexts/AppStateProvider";
+import { ModelOption } from "@/contexts/AppStateContext";
 import { LoaderCircleIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
 function App() {
   const [websocketEnabled, setWebsocketEnabled] = useState<boolean>();
   const [webrtcEnabled, setWebrtcEnabled] = useState<boolean>();
+  const [availableModels, setAvailableModels] = useState<{
+    stt: ModelOption[];
+    llm: ModelOption[];
+    tts: ModelOption[];
+    mcp: ModelOption[];
+  }>({
+    stt: [],
+    llm: [],
+    tts: [],
+    mcp: [],
+  });
 
   useEffect(() => {
     const abort = new AbortController();
     const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://127.0.0.1:7860/api';
     console.log('Fetching from:', serverUrl);
-    fetch(`${serverUrl}/`, {
-      signal: abort.signal,
-    })
-      .then((response) => {
-        console.log('Response status:', response.status);
-        console.log('Response headers:', response.headers);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+    
+    // Fetch both config and models
+    Promise.all([
+      fetch(`${serverUrl}/`, { signal: abort.signal }),
+      fetch(`${serverUrl}/models`, { signal: abort.signal })
+    ])
+      .then(([configResponse, modelsResponse]) => {
+        console.log('Config response status:', configResponse.status);
+        console.log('Models response status:', modelsResponse.status);
+        
+        if (!configResponse.ok) {
+          throw new Error(`HTTP error! status: ${configResponse.status}`);
         }
-        return response.json();
+        if (!modelsResponse.ok) {
+          throw new Error(`HTTP error! status: ${modelsResponse.status}`);
+        }
+        
+        return Promise.all([configResponse.json(), modelsResponse.json()]);
       })
-      .then((json) => {
-        console.log('Server response:', json);
-        const wsEnabled = json?.["websocket-enabled"] ?? false;
-        const webrtcEnabled = json?.["webrtc-enabled"] ?? false;
+      .then(([configJson, modelsJson]) => {
+        console.log('Server config:', configJson);
+        console.log('Available models:', modelsJson);
+        
+        const wsEnabled = configJson?.["websocket-enabled"] ?? false;
+        const webrtcEnabled = configJson?.["webrtc-enabled"] ?? false;
         console.log('Setting websocketEnabled to:', wsEnabled);
         console.log('Setting webrtcEnabled to:', webrtcEnabled);
         setWebsocketEnabled(wsEnabled);
         setWebrtcEnabled(webrtcEnabled);
+        
+        // Set available models
+        if (modelsJson?.models) {
+          setAvailableModels(modelsJson.models);
+        }
       })
       .catch((error) => {
         console.error('Error fetching server config:', error);
@@ -70,6 +97,7 @@ function App() {
       <AppStateProvider
         webrtcEnabled={webrtcEnabled ?? false}
         websocketEnabled={websocketEnabled ?? false}
+        availableModels={availableModels}
       >
         <Layout>
           <ClientPage />
