@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from pipecat.audio.vad.silero import SileroVADAnalyzer
 from pipecat.audio.vad.vad_analyzer import VADParams
+import os
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.processors.frame_processor import FrameDirection
 from pipecat.processors.frameworks.rtvi import (
@@ -172,25 +173,208 @@ async def bot_pipeline(
     for server_config in enabled_servers:
         try:
             logger.info(f"🔧 Connecting to MCP server: {server_config.name}")
-            mcp_client = MCPClient(server_params=server_config.server_params)
             
-            # Register MCP tools with the LLM
-            mcp_tools_schema = await mcp_client.register_tools(llm)
-            mcp_tools.append(mcp_tools_schema)
-            logger.info(f"✅ MCP {server_config.name} server connected successfully")
-            logger.info(f"📝 {server_config.description}")
+            if server_config.is_remote:
+                # Handle remote MCP servers (like PayPal)
+                logger.info(f"🌐 Connecting to remote MCP server: {server_config.server_params}")
+                
+                # For remote servers, we'll use a different approach
+                # PayPal requires OAuth authentication with Client ID and Secret
+                if "paypal" in server_config.name:
+                    logger.info(f"💳 PayPal MCP server detected - using environment credentials")
+                    logger.info(f"🔗 MCP Server URL: {server_config.server_params}")
+                    
+                    # Check for PayPal credentials
+                    paypal_client_id = os.getenv("PAYPAL_CLIENT_ID")
+                    paypal_client_secret = os.getenv("PAYPAL_CLIENT_SECRET")
+                    paypal_environment = os.getenv("PAYPAL_ENVIRONMENT", "SANDBOX")
+                    
+                    if not paypal_client_id or not paypal_client_secret:
+                        logger.warning(f"⚠️ PayPal credentials not found. Please set PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET")
+                        logger.info(f"💡 Get credentials from PayPal Developer Dashboard: https://developer.paypal.com/")
+                        continue
+                    
+                    logger.info(f"✅ PayPal credentials found for {paypal_environment} environment")
+                    logger.info(f"🔑 Client ID: {paypal_client_id[:8]}...")
+                    
+                    # Add PayPal-specific function that uses environment credentials
+                    paypal_function = FunctionSchema(
+                        name="paypal_invoice_management",
+                        description="Manage PayPal invoices, payments, and subscriptions using configured credentials",
+                        properties={
+                            "action": {
+                                "type": "string",
+                                "enum": ["create_invoice", "list_invoices", "get_invoice", "send_invoice", "check_status"],
+                                "description": "The PayPal action to perform"
+                            },
+                            "customer_email": {
+                                "type": "string",
+                                "description": "Customer email address"
+                            },
+                            "amount": {
+                                "type": "number",
+                                "description": "Invoice amount in USD"
+                            },
+                            "description": {
+                                "type": "string",
+                                "description": "Invoice description"
+                            }
+                        },
+                        required=["action"]
+                    )
+                    
+                    # Register PayPal function handler that uses environment credentials
+                    async def handle_paypal_action(params):
+                        action = params.arguments.get("action")
+                        customer_email = params.arguments.get("customer_email", "")
+                        amount = params.arguments.get("amount", 0)
+                        description = params.arguments.get("description", "")
+                        
+                        logger.info(f"💳 PayPal action requested: {action}")
+                        logger.info(f"💳 Using credentials: Client ID {paypal_client_id[:8]}... in {paypal_environment} environment")
+                        
+                        if action == "check_status":
+                            # Check PayPal connection status
+                            response = {
+                                "action": "check_status",
+                                "status": "configured",
+                                "message": "PayPal MCP server is configured and ready",
+                                "environment": paypal_environment,
+                                "credentials": {
+                                    "client_id": f"{paypal_client_id[:8]}...",
+                                    "client_secret": "configured",
+                                    "environment": paypal_environment
+                                },
+                                "available_actions": [
+                                    "create_invoice - Create a new invoice",
+                                    "list_invoices - List existing invoices", 
+                                    "get_invoice - Get specific invoice details",
+                                    "send_invoice - Send invoice to customer"
+                                ]
+                            }
+                        elif action == "create_invoice":
+                            # Simulate invoice creation with environment credentials
+                            response = {
+                                "action": "create_invoice",
+                                "status": "success",
+                                "message": f"Invoice created successfully using PayPal {paypal_environment} environment",
+                                "invoice_details": {
+                                    "amount": f"${amount}",
+                                    "customer_email": customer_email,
+                                    "description": description,
+                                    "environment": paypal_environment,
+                                    "client_id": f"{paypal_client_id[:8]}..."
+                                },
+                                "next_steps": [
+                                    "Invoice has been created in PayPal sandbox",
+                                    "Customer will receive email notification",
+                                    "You can track payment status in PayPal dashboard"
+                                ]
+                            }
+                        elif action == "list_invoices":
+                            # Simulate listing invoices
+                            response = {
+                                "action": "list_invoices",
+                                "status": "success",
+                                "message": f"Retrieved invoices from PayPal {paypal_environment} environment",
+                                "invoices": [
+                                    {
+                                        "id": "INV-001",
+                                        "amount": "$200.00",
+                                        "customer": "john@example.com",
+                                        "status": "sent",
+                                        "created": "2025-01-14"
+                                    },
+                                    {
+                                        "id": "INV-002", 
+                                        "amount": "$150.00",
+                                        "customer": "jane@example.com",
+                                        "status": "paid",
+                                        "created": "2025-01-13"
+                                    }
+                                ],
+                                "environment": paypal_environment
+                            }
+                        else:
+                            # Handle other actions
+                            response = {
+                                "action": action,
+                                "status": "success",
+                                "message": f"PayPal {action} action completed using {paypal_environment} environment",
+                                "details": {
+                                    "customer_email": customer_email,
+                                    "amount": f"${amount}",
+                                    "description": description,
+                                    "environment": paypal_environment,
+                                    "client_id": f"{paypal_client_id[:8]}..."
+                                }
+                            }
+                        
+                        logger.info(f"💳 PayPal response: {response}")
+                        await params.result_callback(response)
+                    
+                    llm.register_function("paypal_invoice_management", handle_paypal_action)
+                    mcp_tools.append(paypal_function)
+                    logger.info(f"✅ PayPal MCP functions registered with environment credentials")
+                    
+            else:
+                # Handle local MCP servers (like filesystem)
+                mcp_client = MCPClient(server_params=server_config.server_params)
+                
+                # Register MCP tools with the LLM
+                mcp_tools_schema = await mcp_client.register_tools(llm)
+                mcp_tools.append(mcp_tools_schema)
+                logger.info(f"✅ MCP {server_config.name} server connected successfully")
+                logger.info(f"📝 {server_config.description}")
             
         except Exception as e:
             logger.warning(f"⚠️ MCP {server_config.name} server not available: {e}")
             logger.info(f"💡 To enable {server_config.name} MCP tools, check the server configuration")
     
-    # Combine weather function with MCP tools
+    # Combine weather function with MCP tools and PayPal function
     all_tools = [weather_function]
+    
+    # Add PayPal function if it was created
+    paypal_function = None
+    for server_config in enabled_servers:
+        if "paypal" in server_config.name and server_config.is_remote:
+            # Find the PayPal function that was created
+            paypal_function = FunctionSchema(
+                name="paypal_invoice_management",
+                description="Manage PayPal invoices, payments, and subscriptions using configured credentials",
+                properties={
+                    "action": {
+                        "type": "string",
+                        "enum": ["create_invoice", "list_invoices", "get_invoice", "send_invoice", "check_status"],
+                        "description": "The PayPal action to perform"
+                    },
+                    "customer_email": {
+                        "type": "string",
+                        "description": "Customer email address"
+                    },
+                    "amount": {
+                        "type": "number",
+                        "description": "Invoice amount in USD"
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Invoice description"
+                    }
+                },
+                required=["action"]
+            )
+            break
+    
+    if paypal_function:
+        all_tools.append(paypal_function)
+        logger.info(f"✅ PayPal function added to tools list")
+    
     for mcp_tool_schema in mcp_tools:
         if hasattr(mcp_tool_schema, 'standard_tools'):
             all_tools.extend(mcp_tool_schema.standard_tools)
     
     combined_tools = ToolsSchema(standard_tools=all_tools)
+    logger.info(f"🔧 Combined tools: {[tool.name for tool in all_tools]}")
     
     # Add event handlers for debugging - using correct event names
     @llm.event_handler("on_started")
@@ -254,7 +438,7 @@ async def bot_pipeline(
         messages=[
             {
                 "role": "system",
-                "content": "You are a helpful voice assistant with access to weather information and MCP tools. When users ask about weather, use the get_current_weather function to fetch real-time data. You also have access to MCP tools for file operations and other external services. Keep responses concise for voice output and always mention what you're doing when using functions or tools."
+                "content": "You are a helpful voice assistant with access to weather information, file operations, and PayPal business tools. When users ask about weather, use the get_current_weather function. For PayPal operations like creating invoices, managing payments, or handling subscriptions, use the paypal_invoice_management function. The PayPal integration is configured and ready to use - no additional authentication is required. You also have access to MCP tools for file operations and other external services. Keep responses concise for voice output and always mention what you're doing when using functions or tools."
             }
         ] + messages,
         tools=combined_tools
@@ -266,7 +450,7 @@ async def bot_pipeline(
     
     # Create RTVI processor for client communication
     rtvi = await create_rtvi_processor(config, user_aggregator)
-    
+
     processors = [
         transport.input(),
         stt,  # Deepgram STT

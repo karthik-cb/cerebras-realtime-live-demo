@@ -207,6 +207,20 @@ MCP_SERVER_OPTIONS = [
         enabled=True
     ),
     ModelOption(
+        id="paypal_sandbox",
+        name="PayPal Sandbox",
+        description="PayPal business tools (invoices, payments, subscriptions) - Sandbox environment",
+        provider="PayPal",
+        enabled=True
+    ),
+    ModelOption(
+        id="paypal_production",
+        name="PayPal Production",
+        description="PayPal business tools (invoices, payments, subscriptions) - Production environment",
+        provider="PayPal",
+        enabled=False
+    ),
+    ModelOption(
         id="database",
         name="Database",
         description="Database operations (query, insert, update)",
