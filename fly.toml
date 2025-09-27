@@ -1,0 +1,47 @@
+# Fly.io configuration for voice agent demo
+app = "voice-agent-demo"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  WEBAPP_PORT = "7860"
+  WEBAPP_LOG_LEVEL = "INFO"
+  BOT_LOG_LEVEL = "INFO"
+  BOT_MAX_VOICE_SESSION_TIME = "900"
+  MCP_FILESYSTEM_ENABLED = "false"
+  MCP_PAYPAL_SANDBOX_ENABLED = "true"
+  PAYPAL_ENVIRONMENT = "SANDBOX"
+
+[http_service]
+  internal_port = 7860
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/"
+
+[machines]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 512
+
+[[statics]]
+  guest_path = "/app/static"
+  url_prefix = "/static/"
+
+# Environment variables (set via fly secrets)
+# fly secrets set DEEPGRAM_API_KEY=your_key
+# fly secrets set CEREBRAS_API_KEY=your_key
+# fly secrets set DAILY_API_KEY=your_key
+# fly secrets set DATABASE_URL=your_database_url
+# fly secrets set PAYPAL_CLIENT_ID=your_client_id
+# fly secrets set PAYPAL_CLIENT_SECRET=your_client_secret

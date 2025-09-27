@@ -1,0 +1,65 @@
+services:
+  # Backend Service (FastAPI + WebRTC)
+  - type: web
+    name: voice-agent-backend
+    env: python
+    plan: starter
+    buildCommand: "cd server && pip install -r requirements.txt"
+    startCommand: "cd server && python sesame.py run --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /
+    envVars:
+      - key: DEEPGRAM_API_KEY
+        sync: false
+      - key: CEREBRAS_API_KEY
+        sync: false
+      - key: DAILY_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: voice-agent-db
+          property: connectionString
+      - key: WEBAPP_PORT
+        value: 7860
+      - key: WEBAPP_LOG_LEVEL
+        value: INFO
+      - key: BOT_LOG_LEVEL
+        value: INFO
+      - key: BOT_MAX_VOICE_SESSION_TIME
+        value: "900"
+      - key: MCP_FILESYSTEM_ENABLED
+        value: "false"
+      - key: MCP_PAYPAL_SANDBOX_ENABLED
+        value: "true"
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_ENVIRONMENT
+        value: "SANDBOX"
+
+  # Frontend Service (React + Vite)
+  - type: web
+    name: voice-agent-frontend
+    env: static
+    plan: starter
+    buildCommand: "cd client && npm install && npm run build"
+    staticPublishPath: ./client/dist
+    envVars:
+      - key: VITE_SERVER_URL
+        fromService:
+          type: web
+          name: voice-agent-backend
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: DEEPGRAM_API_KEY
+        sync: false
+      - key: CEREBRAS_API_KEY
+        sync: false
+      - key: DAILY_API_KEY
+        sync: false
+
+databases:
+  # PostgreSQL Database
+  - name: voice-agent-db
+    plan: starter
+    databaseName: voice_agent
+    user: voice_agent_user

@@ -1,0 +1,54 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS"
+  },
+  "deploy": {
+    "startCommand": "python sesame.py run --host 0.0.0.0 --port $PORT",
+    "healthcheckPath": "/",
+    "healthcheckTimeout": 100,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
+  },
+  "services": [
+    {
+      "name": "voice-agent-backend",
+      "source": {
+        "repo": "your-username/cerebras-realtime-live-demo",
+        "rootDirectory": "server"
+      },
+      "build": {
+        "builder": "NIXPACKS"
+      },
+      "deploy": {
+        "startCommand": "python sesame.py run --host 0.0.0.0 --port $PORT",
+        "healthcheckPath": "/",
+        "healthcheckTimeout": 100
+      }
+    },
+    {
+      "name": "voice-agent-frontend",
+      "source": {
+        "repo": "your-username/cerebras-realtime-live-demo",
+        "rootDirectory": "client"
+      },
+      "build": {
+        "builder": "NIXPACKS"
+      },
+      "deploy": {
+        "startCommand": "npm run preview -- --host 0.0.0.0 --port $PORT",
+        "healthcheckPath": "/",
+        "healthcheckTimeout": 100
+      }
+    },
+    {
+      "name": "postgresql",
+      "image": "postgres:15",
+      "variables": {
+        "POSTGRES_DB": "voice_agent",
+        "POSTGRES_USER": "postgres",
+        "POSTGRES_PASSWORD": "${{Postgres.PASSWORD}}"
+      }
+    }
+  ]
+}
