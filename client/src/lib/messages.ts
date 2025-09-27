@@ -25,20 +25,29 @@ export interface Message {
   updated_at: string;
 }
 
-export const addNewLinesBeforeCodeblocks = (markdown: string) =>
-  markdown.match(/([^\n])(\n```)/)
+export const addNewLinesBeforeCodeblocks = (markdown: string) => {
+  if (!markdown || typeof markdown !== 'string') {
+    return markdown || '';
+  }
+  return markdown.match(/([^\n])(\n```)/)
     ? markdown.replace(/([^\n])(\n```)/g, "$1\n$2")
     : markdown;
+};
 
 export function normalizeMessageText(message: Message) {
-  return addNewLinesBeforeCodeblocks(
-    Array.isArray(message.content.content)
+  try {
+    const content = Array.isArray(message.content.content)
       ? message.content.content
           .filter((tc) => tc.type === "text")
           .map((tc) => tc.text)
           .join(" ")
-      : message.content.content,
-  );
+      : message.content.content;
+    
+    return addNewLinesBeforeCodeblocks(content || '');
+  } catch (error) {
+    console.error('Error normalizing message text:', error, message);
+    return '';
+  }
 }
 
 export function extractMessageImages(message: Message) {

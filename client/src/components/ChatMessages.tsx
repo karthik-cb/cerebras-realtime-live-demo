@@ -16,6 +16,8 @@ export default function ChatMessages({ autoscroll = true, messages }: Props) {
   const { conversationId } = useAppState();
   const [isBotSpeaking, setIsBotSpeaking] = useState(false);
 
+  console.log("💬 ChatMessages:", { conversationId, messageCount: messages.length });
+
   useRTVIClientEvent(
     RTVIEvent.BotStartedSpeaking,
     useCallback(() => {

@@ -40,7 +40,24 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<Props>> = ({
   );
 
   useEffect(() => {
-    setConversationType(conversationId ? "text-voice" : null);
+    console.log("🔄 AppStateProvider useEffect triggered:", {
+      conversationId,
+      conversationType,
+      url: window.location.href
+    });
+    
+    // Only auto-set conversation type if we're not explicitly in voice-to-voice mode
+    // This allows voice-to-voice conversations to maintain their conversation ID and type
+    if (conversationId && conversationType !== "voice-to-voice") {
+      console.log("✅ Setting conversationType to 'text-voice'");
+      setConversationType("text-voice");
+    } else if (!conversationId && conversationType !== "voice-to-voice") {
+      console.log("✅ Setting conversationType to null");
+      setConversationType(null);
+    } else {
+      console.log("✅ Preserving voice-to-voice mode, no change to conversationType");
+    }
+    // If we're in voice-to-voice mode, don't change the conversation type regardless of conversationId
   }, [conversationId]);
 
   const [searchQuery, setSearchQuery] = useState(q ?? "");

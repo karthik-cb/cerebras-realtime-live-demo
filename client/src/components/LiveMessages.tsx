@@ -47,12 +47,13 @@ interface MessageChunk {
 
 export default function LiveMessages({
   autoscroll,
+  conversationId,
   isBotSpeaking,
   messages,
 }: Props) {
   const [liveMessages, setLiveMessages] = useState<LiveMessage[]>([]);
 
-  const { conversationId, interactionMode } = useAppState();
+  const { interactionMode } = useAppState();
 
   const client = useRTVIClient();
 

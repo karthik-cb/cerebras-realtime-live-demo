@@ -1,5 +1,6 @@
 import BotReadyAudio from "@/components/BotReadyAudio";
 import ExpiryCountdown from "@/components/ExpiryCountdown";
+import { ConversationHistoryPopup } from "@/components/ConversationHistoryPopup";
 import { Button } from "@/components/ui/button";
 import {
   Carousel,
@@ -35,6 +36,7 @@ import {
 import {
   AlertCircleIcon,
   ArrowUpIcon,
+  HistoryIcon,
   LoaderCircle,
   LoaderCircleIcon,
   MicIcon,
@@ -74,7 +76,7 @@ interface Props {
 type UploadStatus = "done" | "error";
 
 const ChatControls: React.FC<Props> = ({ onChangeMode }) => {
-  const { conversationId, setConversationId, webrtcEnabled } = useAppState();
+  const { conversationId, setConversationId, webrtcEnabled, interactionMode } = useAppState();
 
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [isMicMuted, setIsMicMuted] = useState(false);
@@ -96,6 +98,7 @@ const ChatControls: React.FC<Props> = ({ onChangeMode }) => {
   const [uploadProgress, setUploadProgress] = useState<
     Record<string, number | UploadStatus>
   >({});
+  const [showHistoryPopup, setShowHistoryPopup] = useState(false);
 
   const xhrsRef = useRef<Record<string, XMLHttpRequest>>({});
 
@@ -626,32 +629,26 @@ const ChatControls: React.FC<Props> = ({ onChangeMode }) => {
         {/* Chat Controls */}
         <div className="flex gap-2 justify-between sm:grid sm:grid-cols-3">
           <div className="flex items-end gap-2">
-            {/* Image Button (File picker with camera support on mobile) */}
-            {/* <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    className="rounded-full relative"
-                    size="icon"
-                    variant="secondary-outline"
-                  >
-                    <PaperclipIcon />
-                    {/* File input (visually hidden) *\/}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      className="absolute inset-0 opacity-0 file:cursor-pointer file:inset-0 file:absolute"
-                      onChange={handleImageChange}
-                    />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent className="bg-background text-foreground shadow-sm">
-                  Attach images
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider> */}
-
+            {/* History Button - Only show in conversational mode */}
+            {interactionMode === "conversational" && conversationId && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      className="rounded-full"
+                      size="icon"
+                      variant="secondary-outline"
+                      onClick={() => setShowHistoryPopup(true)}
+                    >
+                      <HistoryIcon size={20} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-background text-foreground shadow-sm">
+                    View conversation history
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </div>
 
           <div className="mr-auto sm:mr-0 sm:justify-self-center">
@@ -738,6 +735,12 @@ const ChatControls: React.FC<Props> = ({ onChangeMode }) => {
           </div>
         </div>
       </div>
+
+      {/* Conversation History Popup */}
+      <ConversationHistoryPopup
+        isOpen={showHistoryPopup}
+        onClose={() => setShowHistoryPopup(false)}
+      />
     </div>
   );
 };

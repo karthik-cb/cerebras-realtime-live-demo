@@ -396,9 +396,9 @@ async def bot_pipeline(
     # Add function call event handlers
     @llm.event_handler("on_function_calls_started")
     async def on_function_calls_started(service, function_calls):
-        logger.info(f"🔧 Function calls started: {[call.name for call in function_calls]}")
+        logger.info(f"🔧 Function calls started: {[call.function_name for call in function_calls]}")
         for call in function_calls:
-            logger.info(f"🔧 Calling function: {call.name} with args: {call.arguments}")
+            logger.info(f"🔧 Calling function: {call.function_name} with args: {call.arguments}")
     
     @llm.event_handler("on_function_call_result")
     async def on_function_call_result(service, result):

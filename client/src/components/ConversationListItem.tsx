@@ -97,6 +97,28 @@ export default function ConversationListItem({ conversation, onClick }: Props) {
     emitter.emit("deleteConversation", conversation.conversation_id);
   };
 
+  const handleConversationClick = (ev: React.MouseEvent) => {
+    console.log("🖱️ Conversation clicked:", {
+      conversationId: conversation.conversation_id,
+      conversationType,
+      currentUrl: window.location.href
+    });
+    
+    if (conversationType === "voice-to-voice") {
+      console.log("🔄 Switching from voice-to-voice to text-voice mode");
+      // Switch to text-voice mode and load the conversation
+      ev.preventDefault();
+      const searchParams = new URLSearchParams();
+      searchParams.append("c", conversation.conversation_id);
+      history.replaceState(null, "", `/?${searchParams.toString()}`);
+      window.location.reload();
+    } else {
+      console.log("📝 Using normal PageTransitionLink behavior");
+      // Let the normal PageTransitionLink behavior handle it
+      // Don't prevent default or call onClick here
+    }
+  };
+
   return (
     <li
       key={conversation.conversation_id}
@@ -146,14 +168,24 @@ export default function ConversationListItem({ conversation, onClick }: Props) {
         </form>
       ) : (
         <>
-          <PageTransitionLink
-            disabled={conversationType === "voice-to-voice"}
-            href={conversation.conversation_id}
-            className="text-base flex-grow px-3 py-2 text-ellipsis text-nowrap overflow-hidden w-full focus-visible:outline-primary focus-visible:outline-1"
-            onClick={onClick}
-          >
-            {title}
-          </PageTransitionLink>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <PageTransitionLink
+                  href={conversation.conversation_id}
+                  className="text-base flex-grow px-3 py-2 text-ellipsis text-nowrap overflow-hidden w-full focus-visible:outline-primary focus-visible:outline-1"
+                  onClick={handleConversationClick}
+                >
+                  {title}
+                </PageTransitionLink>
+              </TooltipTrigger>
+              {conversationType === "voice-to-voice" && (
+                <TooltipContent className="bg-background text-foreground shadow-sm">
+                  Click to switch to text mode and view this conversation
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button

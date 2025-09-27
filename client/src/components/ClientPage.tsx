@@ -220,10 +220,15 @@ export function ClientPage() {
             </div>
           ) : (
             <div className="flex flex-col gap-12 items-center justify-center h-full my-auto">
-              <h2 className="font-light text-2xl text-center text-neutral-700">
-                Select conversation type:
-              </h2>
-              <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-center justify-center">
+              <div className="flex flex-col gap-4 items-center text-center">
+                <h2 className="font-light text-2xl text-center text-neutral-700">
+                  Real-Time Voice AI Agent
+                </h2>
+                <p className="font-light text-neutral-500 max-w-md">
+                  Use your microphone to have natural conversations with our AI agent powered by Deepgram STT, Cerebras LLM, and Deepgram TTS.
+                </p>
+              </div>
+              <div className="flex justify-center">
                 <Button
                   disabled={!websocketEnabled}
                   variant="secondary-outline"
@@ -240,48 +245,12 @@ export function ClientPage() {
                   </div>
                   <div className="flex flex-col gap-2">
                     <strong className="block mt-4 text-lg">
-                      Real-Time Voice AI Agent
+                      Start Voice Conversation
                     </strong>
                     <span className="font-light text-neutral-500">
-                      Use your mic to talk with our AI agent using Deepgram STT, Cerebras LLM, and Deepgram TTS.
+                      Click to begin talking with our AI agent
                     </span>
                   </div>
-                  <span className="opacity-50 inline-flex gap-1 items-center mt-4">
-                    <XCircleIcon className="text-destructive" size={16} />
-                    <span className="uppercase font-light text-neutral-700 text-xs tracking-wider">
-                      Conversations not stored
-                    </span>
-                  </span>
-                </Button>
-                <Button
-                  disabled={!webrtcEnabled}
-                  variant="secondary-outline"
-                  className="relative h-full flex flex-col items-center border border-transparent bg-origin-border borderClip bg-cardBorder justify-between gap-2 max-w-72 lg:max-w-80 text-wrap rounded-3xl p-4 lg:p-6 shadow-mid hover:shadow-long hover:bg-cardBorderHover transition-all text-base outline outline-neutral-400/10 outline-0 hover:outline-[7px]"
-                  onClick={() => setConversationType("text-voice")}
-                >
-                  {!webrtcEnabled && (
-                    <div className="bg-red-200 self-stretch absolute -top-4 left-10 right-10 z-10 rounded-full text-xs py-2 uppercase tracking-wider text-red-900">
-                      Missing DAILY_API_KEY
-                    </div>
-                  )}
-                  <div className="flex items-center justify-center bg-orange-100 text-orange-400 rounded-full">
-                    <PipecatLogo className="h-20 w-20 p-4" />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <strong className="block mt-4 text-lg">
-                      Pipecat Multi-Modal
-                    </strong>
-                    <span className="font-light text-neutral-500">
-                      Use your mic, camera and keyboard to talk with Gemini
-                      using WebRTC.
-                    </span>
-                  </div>
-                  <span className="opacity-50 inline-flex gap-1 items-center mt-4">
-                    <DatabaseIcon className="text-green-400" size={16} />
-                    <span className="uppercase font-light text-neutral-700 text-xs tracking-wider">
-                      Conversations stored
-                    </span>
-                  </span>
                 </Button>
               </div>
             </div>

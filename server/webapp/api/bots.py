@@ -108,9 +108,16 @@ async def connect(
             # Create a conversation first if one doesn't exist
             if not params.conversation_id:
                 logger.info("Creating new conversation for voice-to-voice")
-                conversation = await Conversation.create_conversation(db)
+                # Create title with timestamp
+                from datetime import datetime
+                timestamp = datetime.now().strftime("%H:%M")
+                title = f"Voice Conversation {timestamp}"
+                conversation = Conversation(title=title)
+                db.add(conversation)
+                await db.commit()
+                await db.refresh(conversation)
                 params.conversation_id = conversation.conversation_id
-                logger.info(f"Created conversation with ID: {params.conversation_id}")
+                logger.info(f"Created conversation with ID: {params.conversation_id} and title: {title}")
             
             logger.info("Creating Daily room...")
             room, user_token, bot_token = await bot_create(transport_api_key)

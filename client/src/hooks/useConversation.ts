@@ -5,8 +5,18 @@ export const useConversation = (conversationId: string) => {
   const { data: conversation, ...query } = useQuery({
     queryKey: ["conversation", conversationId],
     queryFn: async () => {
-      if (!conversationId) return null;
-      return await getConversation(conversationId);
+      console.log("📞 useConversation queryFn called:", { conversationId });
+      if (!conversationId) {
+        console.log("❌ No conversationId provided");
+        return null;
+      }
+      const result = await getConversation(conversationId);
+      console.log("📞 useConversation result:", { 
+        conversationId, 
+        hasConversation: !!result,
+        messageCount: result?.messages?.length || 0
+      });
+      return result;
     },
   });
   const queryClient = useQueryClient();
