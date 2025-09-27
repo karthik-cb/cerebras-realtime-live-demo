@@ -1,0 +1,56 @@
+# Dependencies
+node_modules/
+rltmenv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Build artifacts
+client/dist/
+client/build/
+
+# Documentation
+*.md
+docs/
+
+# Test files
+test_*
+*_test.py
+tests/
+
+# Temporary files
+tmp/
+temp/

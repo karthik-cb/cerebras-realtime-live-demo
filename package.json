@@ -1,0 +1,50 @@
+{
+  "name": "cerebras-realtime-live-demo",
+  "version": "1.0.0",
+  "description": "Voice Agent Demo with TTS-LLM-STT Pipeline and MCP Integration",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "cd server && python sesame.py run",
+    "dev:client": "cd client && npm run dev",
+    "build": "cd client && npm run build",
+    "build:server": "cd server && pip install -r requirements.txt",
+    "start": "cd server && python sesame.py run",
+    "setup": "python setup_tts_llm_stt.py",
+    "deploy:vercel": "cd client && vercel --prod",
+    "deploy:railway": "railway deploy",
+    "test": "python test_integration.py",
+    "lint": "cd client && npm run lint",
+    "format": "cd client && npm run format"
+  },
+  "keywords": [
+    "voice-ai",
+    "tts",
+    "llm",
+    "stt",
+    "mcp",
+    "pipecat",
+    "cerebras",
+    "deepgram",
+    "webrtc",
+    "react",
+    "fastapi"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/cerebras-realtime-live-demo.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/cerebras-realtime-live-demo/issues"
+  },
+  "homepage": "https://github.com/your-username/cerebras-realtime-live-demo#readme",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "python": ">=3.10.0"
+  }
+}
