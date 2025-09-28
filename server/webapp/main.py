@@ -16,10 +16,11 @@ from common.models import Base
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from loguru import logger
 
 from .api import router as api_router
+from .health import health_checker
 
 load_dotenv(override=True)
 
@@ -79,7 +80,40 @@ async def home():
     return "Sesame is running"
 
 
-@app.get("/healthz", response_class=HTMLResponse)
+@app.get("/healthz", response_class=JSONResponse)
 async def health_check():
-    """Health check endpoint for Fly.io"""
-    return "OK"
+    """Basic health check endpoint for Fly.io and other platforms"""
+    result = await health_checker.basic_health()
+    status_code = 200 if result["status"] == "healthy" else 503
+    return JSONResponse(content=result, status_code=status_code)
+
+
+@app.get("/health", response_class=JSONResponse)
+async def standard_health():
+    """Standard health check - includes database"""
+    result = await health_checker.standard_health()
+    status_code = 200 if result["status"] == "healthy" else 503
+    return JSONResponse(content=result, status_code=status_code)
+
+
+@app.get("/health/detailed", response_class=JSONResponse)
+async def comprehensive_health():
+    """Comprehensive health check - all components"""
+    result = await health_checker.comprehensive_health()
+    status_code = 200 if result["status"] == "healthy" else 503
+    return JSONResponse(content=result, status_code=status_code)
+
+
+@app.get("/health/ready", response_class=JSONResponse)
+async def readiness_check():
+    """Kubernetes-style readiness check"""
+    result = await health_checker.standard_health()
+    status_code = 200 if result["status"] == "healthy" else 503
+    return JSONResponse(content=result, status_code=status_code)
+
+
+@app.get("/health/live", response_class=JSONResponse)
+async def liveness_check():
+    """Kubernetes-style liveness check"""
+    result = await health_checker.basic_health()
+    return JSONResponse(content=result, status_code=200)
