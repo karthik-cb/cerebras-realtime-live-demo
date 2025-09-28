@@ -25,10 +25,29 @@ class DatabaseSessionFactory:
             return
 
         db_url = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./sesame.db")
+        
+        # Configure connection arguments based on database type
+        connect_args = {}
+        if "sqlite" in db_url:
+            connect_args = {"check_same_thread": False}
+        elif "postgresql" in db_url:
+            # PostgreSQL-specific connection arguments
+            connect_args = {
+                "server_settings": {
+                    "application_name": "voice-agent-demo",
+                }
+            }
+        elif "mysql" in db_url:
+            # MySQL-specific connection arguments
+            connect_args = {
+                "charset": "utf8mb4",
+            }
+        
         self._engine = create_async_engine(
             db_url,
-            connect_args={"check_same_thread": False},
+            connect_args=connect_args,
             pool_pre_ping=True,
+            pool_recycle=3600,  # Recycle connections every hour
             echo=bool(int(os.getenv("DATABASE_ECHO_OUTPUT", "0"))),
         )
         self.session_maker = async_sessionmaker(self._engine, expire_on_commit=False)
@@ -44,7 +63,17 @@ class DatabaseSessionFactory:
         """Initialize the database schema from SQLAlchemy models"""
         async with self.engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-            logger.debug("SQLite schema applied")
+            
+            # Log database type for debugging
+            db_url = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./sesame.db")
+            if "sqlite" in db_url:
+                logger.debug("SQLite schema applied")
+            elif "postgresql" in db_url:
+                logger.debug("PostgreSQL schema applied")
+            elif "mysql" in db_url:
+                logger.debug("MySQL schema applied")
+            else:
+                logger.debug("Database schema applied")
 
     @asynccontextmanager
     async def __call__(self):

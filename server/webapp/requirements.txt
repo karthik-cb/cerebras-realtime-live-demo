@@ -5,7 +5,7 @@ uvicorn
 python-dotenv
 pydantic
 argon2-cffi
-sqlalchemy[aiosqlite]
+sqlalchemy[postgresql,aiosqlite]
 pipecat-ai[mcp]==0.0.85
 jinja2
 cryptography

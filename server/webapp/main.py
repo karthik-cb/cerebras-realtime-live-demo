@@ -58,9 +58,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Configure CORS for Vercel frontend
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "*")
+if allowed_origins != "*":
+    allowed_origins = [origin.strip() for origin in allowed_origins.split(",")]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -72,3 +77,9 @@ app.include_router(api_router, prefix="/api")
 @app.get("/", response_class=HTMLResponse)
 async def home():
     return "Sesame is running"
+
+
+@app.get("/healthz", response_class=HTMLResponse)
+async def health_check():
+    """Health check endpoint for Fly.io"""
+    return "OK"
