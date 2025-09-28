@@ -20,12 +20,9 @@ import { DailyTransport } from "@pipecat-ai/daily-transport";
 import {
   ArrowDownIcon,
   AudioWaveformIcon,
-  DatabaseIcon,
   LoaderCircleIcon,
-  XCircleIcon,
 } from "lucide-react";
 import { useEffect, useLayoutEffect, useState } from "react";
-import PipecatLogo from "./svg/Pipecat";
 
 const defaultRequestData = {
   bot_profile: "vision",

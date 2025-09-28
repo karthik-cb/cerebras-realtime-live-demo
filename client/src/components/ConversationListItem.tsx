@@ -22,10 +22,9 @@ import { FormEvent, useEffect, useState } from "react";
 
 interface Props {
   conversation: ConversationModel;
-  onClick: () => void;
 }
 
-export default function ConversationListItem({ conversation, onClick }: Props) {
+export default function ConversationListItem({ conversation }: Props) {
   const { conversationId, conversationType } = useAppState();
 
   const isActive = conversationId === conversation.conversation_id;

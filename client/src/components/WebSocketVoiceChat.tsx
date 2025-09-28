@@ -1,5 +1,4 @@
 import BotReadyAudio from "@/components/BotReadyAudio";
-import { ConversationHistoryPopup } from "@/components/ConversationHistoryPopup";
 import { VoiceIndicator } from "@/components/VoiceIndicator";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,7 +7,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useConversations } from "@/hooks/useConversations";
 import { cn } from "@/lib/utils";
 import { RTVIEvent } from "@pipecat-ai/client-js";
 import {
@@ -32,7 +30,6 @@ export const WebSocketVoiceChat: React.FC = () => {
   }>>([]);
 
   const rtviClient = useRTVIClient();
-  const { conversations } = useConversations();
 
   const state = useRTVIClientTransportState();
 
@@ -131,14 +128,17 @@ export const WebSocketVoiceChat: React.FC = () => {
     };
 
     // Listen to all events
-    const eventNames = Object.keys(RTVIEvent);
+    const eventNames = Object.keys(RTVIEvent) as Array<keyof typeof RTVIEvent>;
     eventNames.forEach(eventName => {
-      rtviClient.addListener(eventName, (data: any) => handleAnyEvent(eventName, data));
+      // Convert PascalCase to camelCase for the listener
+      const camelCaseEventName = eventName.charAt(0).toLowerCase() + eventName.slice(1);
+      rtviClient.addListener(camelCaseEventName as any, (data: any) => handleAnyEvent(eventName, data));
     });
 
     return () => {
       eventNames.forEach(eventName => {
-        rtviClient.removeListener(eventName, handleAnyEvent);
+        const camelCaseEventName = eventName.charAt(0).toLowerCase() + eventName.slice(1);
+        rtviClient.removeListener(camelCaseEventName as any, handleAnyEvent);
       });
     };
   }, [rtviClient]);
@@ -148,7 +148,7 @@ export const WebSocketVoiceChat: React.FC = () => {
   }, [muted, rtviClient]);
 
   const handleDisconnect = () => {
-    const conversationId = rtviClient?.params?.requestData?.conversation_id;
+    const conversationId = (rtviClient?.params?.requestData as any)?.conversation_id;
     console.log("🚪 Voice chat disconnect initiated:", {
       currentUrl: window.location.href,
       conversationId

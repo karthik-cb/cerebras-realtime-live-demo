@@ -11,7 +11,7 @@ interface Props {
   onClick: () => void;
 }
 
-export const ConversationList = ({ onClick }: Props) => {
+export const ConversationList = ({ }: Props) => {
   const loadingRef = useRef<HTMLDivElement>(null);
   const { conversationId, searchQuery, setSearchQuery } = useAppState();
 
@@ -95,7 +95,6 @@ export const ConversationList = ({ onClick }: Props) => {
         <ul>
           <ConversationListItem
             conversation={conversation as ConversationModel}
-            onClick={onClick}
           />
         </ul>
       )}
@@ -111,7 +110,6 @@ export const ConversationList = ({ onClick }: Props) => {
               <ConversationListItem
                 key={conversation.conversation_id}
                 conversation={conversation}
-                onClick={onClick}
               />
             ))}
           </ul>

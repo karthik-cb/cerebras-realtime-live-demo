@@ -14,7 +14,7 @@ import {
   SheetDescription,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { InteractionMode, ModelOption } from "@/contexts/AppStateContext";
+import { InteractionMode } from "@/contexts/AppStateContext";
 import { useAppState } from "@/hooks/useAppState";
 import emitter from "@/lib/eventEmitter";
 import {
