@@ -12,7 +12,7 @@
     WORKDIR /app
     
     # Copy backend code (keep relative requirements includes working)
-    COPY server/ /app/
+    COPY . /app/
     
     # Install Python deps
     # Your server/requirements.txt includes -r ./webapp/... etc, so this path is correct
