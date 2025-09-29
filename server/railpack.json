@@ -1,0 +1,14 @@
+{
+    "$schema": "https://schema.railpack.com",
+    "steps": {
+      "install": {
+        "commands": ["pip install --no-cache-dir -r requirements.txt"]
+      },
+      "build": {
+        "commands": []
+      }
+    },
+    "deploy": {
+      "startCommand": "/app/venv/bin/uvicorn webapp.main:app --host 0.0.0.0 --port $PORT"
+    }
+  }  
