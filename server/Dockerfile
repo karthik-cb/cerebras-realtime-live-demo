@@ -14,6 +14,9 @@
     # Copy backend code (keep relative requirements includes working)
     COPY . /app/
     
+    # (Optional) debug to confirm files are where you expect
+    RUN set -eux; pwd; ls -la; ls -la webapp || true; ls -la bots || true
+    
     # Install Python deps
     # Your server/requirements.txt includes -r ./webapp/... etc, so this path is correct
     RUN pip install --no-cache-dir -r requirements.txt
