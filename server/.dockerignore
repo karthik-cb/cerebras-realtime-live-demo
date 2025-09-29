@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pytest_cache
+*.coverage
+.cache/
+.venv/
+venv/
+
+# Git/IDE
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# Node stuff (in case)
+node_modules/
+dist/
