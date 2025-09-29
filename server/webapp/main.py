@@ -22,7 +22,7 @@ from loguru import logger
 from .api import router as api_router
 from .health import health_checker
 
-load_dotenv(override=True)
+load_dotenv(override=False)
 
 logger.remove(0)
 logger.add(sys.stderr, level=os.getenv("WEBAPP_LOG_LEVEL", "DEBUG"))
@@ -78,6 +78,20 @@ app.include_router(api_router, prefix="/api")
 @app.get("/", response_class=HTMLResponse)
 async def home():
     return "Sesame is running"
+
+
+@app.get("/env-check", response_class=JSONResponse)
+async def env_check():
+    """Debug endpoint to check environment variables (remove in production)"""
+    return {
+        "DEEPGRAM_API_KEY": "SET" if os.getenv("DEEPGRAM_API_KEY") else "MISSING",
+        "CEREBRAS_API_KEY": "SET" if os.getenv("CEREBRAS_API_KEY") else "MISSING", 
+        "DAILY_API_KEY": "SET" if os.getenv("DAILY_API_KEY") else "MISSING",
+        "GEMINI_API_KEY": "SET" if os.getenv("GEMINI_API_KEY") else "MISSING",
+        "DATABASE_URL": "SET" if os.getenv("DATABASE_URL") else "MISSING",
+        "WEBAPP_PORT": os.getenv("WEBAPP_PORT", "NOT_SET"),
+        "RAILWAY_ENVIRONMENT": os.getenv("RAILWAY_ENVIRONMENT", "NOT_SET"),
+    }
 
 
 @app.get("/healthz", response_class=JSONResponse)
