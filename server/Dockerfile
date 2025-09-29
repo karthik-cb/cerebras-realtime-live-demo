@@ -15,7 +15,7 @@
     COPY . /app/
     
     # (Optional) debug to confirm files are where you expect
-    RUN set -eux; pwd; ls -la; ls -la webapp || true; ls -la bots || true
+    # RUN set -eux; pwd; ls -la; ls -la webapp || true; ls -la bots || true
     
     # Install Python deps
     # Your server/requirements.txt includes -r ./webapp/... etc, so this path is correct
