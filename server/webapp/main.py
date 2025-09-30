@@ -79,8 +79,10 @@ app.add_middleware(
 
 # Production-only security middlewares
 if ENVIRONMENT == "production":
-    # Enforce HTTPS in production (assumes TLS termination at proxy will forward as https)
-    app.add_middleware(HTTPSRedirectMiddleware)
+    # Only enforce HTTPS redirect if not on Railway (Railway handles TLS termination)
+    # Railway uses internal HTTP for health checks and load balancing
+    if not os.getenv("RAILWAY_ENVIRONMENT"):
+        app.add_middleware(HTTPSRedirectMiddleware)
 
     # Restrict trusted hosts if provided
     trusted_hosts = os.getenv("TRUSTED_HOSTS", "").strip()
@@ -107,7 +109,7 @@ if ENVIRONMENT != "production":
             "DAILY_API_KEY": "SET" if os.getenv("DAILY_API_KEY") else "MISSING",
             # "GEMINI_API_KEY": "SET" if os.getenv("GEMINI_API_KEY") else "MISSING",
             "DATABASE_URL": "SET" if os.getenv("DATABASE_URL") else "MISSING",
-            # "WEBAPP_PORT": os.getenv("WEBAPP_PORT", "NOT_SET"),
+            "WEBAPP_PORT": os.getenv("WEBAPP_PORT", "NOT_SET"),
             "RAILWAY_ENVIRONMENT": os.getenv("RAILWAY_ENVIRONMENT", "NOT_SET"),
         }
 
