@@ -87,9 +87,9 @@ async def env_check():
         "DEEPGRAM_API_KEY": "SET" if os.getenv("DEEPGRAM_API_KEY") else "MISSING",
         "CEREBRAS_API_KEY": "SET" if os.getenv("CEREBRAS_API_KEY") else "MISSING", 
         "DAILY_API_KEY": "SET" if os.getenv("DAILY_API_KEY") else "MISSING",
-        "GEMINI_API_KEY": "SET" if os.getenv("GEMINI_API_KEY") else "MISSING",
+        # "GEMINI_API_KEY": "SET" if os.getenv("GEMINI_API_KEY") else "MISSING",
         "DATABASE_URL": "SET" if os.getenv("DATABASE_URL") else "MISSING",
-        "WEBAPP_PORT": os.getenv("WEBAPP_PORT", "NOT_SET"),
+        # "WEBAPP_PORT": os.getenv("WEBAPP_PORT", "NOT_SET"),
         "RAILWAY_ENVIRONMENT": os.getenv("RAILWAY_ENVIRONMENT", "NOT_SET"),
     }
 
