@@ -214,9 +214,9 @@ class HealthChecker:
         # Check other MCP servers
         mcp_servers = [
             "MCP_FILESYSTEM_ENABLED",
-            "MCP_DATABASE_ENABLED", 
+            # "MCP_DATABASE_ENABLED", 
             "MCP_WEATHER_ENABLED",
-            "MCP_CALENDAR_ENABLED"
+            # "MCP_CALENDAR_ENABLED"
         ]
         
         for server in mcp_servers:
