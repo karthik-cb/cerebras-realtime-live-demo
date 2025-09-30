@@ -19,11 +19,11 @@ async def config():
         "websocket-enabled": bool(SERVICE_API_KEYS["deepgram"] and SERVICE_API_KEYS["cerebras"]),
         "webrtc-enabled": bool(SERVICE_API_KEYS["daily"]),
         "tts-llm-stt-enabled": bool(SERVICE_API_KEYS["deepgram"] and SERVICE_API_KEYS["cerebras"]),
-        "deepgram-api-key": SERVICE_API_KEYS["deepgram"],
-        "cerebras-api-key": SERVICE_API_KEYS["cerebras"],
-        "daily-api-key": SERVICE_API_KEYS["daily"],
+        # "deepgram-api-key": SERVICE_API_KEYS["deepgram"],
+        # "cerebras-api-key": SERVICE_API_KEYS["cerebras"],
+        # "daily-api-key": SERVICE_API_KEYS["daily"],
         # Legacy support
-        "gemini-api-key": SERVICE_API_KEYS["gemini"],
+        # "gemini-api-key": SERVICE_API_KEYS["gemini"],
     }
 
 @router.get("/models", response_class=JSONResponse)
