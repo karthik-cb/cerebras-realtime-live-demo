@@ -273,6 +273,7 @@ class HealthChecker:
         
         for check_name, result in zip(self.checks.keys(), check_results):
             if isinstance(result, Exception):
+                print(f"{check_name} check failed with exception: {str(result)}")
                 checks[check_name] = {
                     "status": "error",
                     "error": str(result),
