@@ -3,19 +3,24 @@ import ssl
 import sys
 from contextlib import asynccontextmanager
 
-# Configure SSL context to disable certificate verification for development
-ssl_context = ssl.create_default_context()
-ssl_context.check_hostname = False
-ssl_context.verify_mode = ssl.CERT_NONE
+# Environment mode
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development").lower()
 
-# Set the default SSL context for the entire process
-ssl._create_default_https_context = lambda: ssl_context
+# Configure SSL context to disable certificate verification for development only
+if ENVIRONMENT != "production":
+    ssl_context = ssl.create_default_context()
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = ssl.CERT_NONE
+    # Set the default SSL context for the entire process (development only)
+    ssl._create_default_https_context = lambda: ssl_context
 
 from common.database import DatabaseSessionFactory
 from common.models import Base
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from loguru import logger
 
@@ -72,6 +77,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Production-only security middlewares
+if ENVIRONMENT == "production":
+    # Enforce HTTPS in production (assumes TLS termination at proxy will forward as https)
+    app.add_middleware(HTTPSRedirectMiddleware)
+
+    # Restrict trusted hosts if provided
+    trusted_hosts = os.getenv("TRUSTED_HOSTS", "").strip()
+    if trusted_hosts:
+        allowed_hosts = [h.strip() for h in trusted_hosts.split(",") if h.strip()]
+        if allowed_hosts:
+            app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
+
 app.include_router(api_router, prefix="/api")
 
 
@@ -80,18 +97,19 @@ async def home():
     return "Sesame is running"
 
 
-@app.get("/env-check", response_class=JSONResponse)
-async def env_check():
-    """Debug endpoint to check environment variables (remove in production)"""
-    return {
-        "DEEPGRAM_API_KEY": "SET" if os.getenv("DEEPGRAM_API_KEY") else "MISSING",
-        "CEREBRAS_API_KEY": "SET" if os.getenv("CEREBRAS_API_KEY") else "MISSING", 
-        "DAILY_API_KEY": "SET" if os.getenv("DAILY_API_KEY") else "MISSING",
-        # "GEMINI_API_KEY": "SET" if os.getenv("GEMINI_API_KEY") else "MISSING",
-        "DATABASE_URL": "SET" if os.getenv("DATABASE_URL") else "MISSING",
-        # "WEBAPP_PORT": os.getenv("WEBAPP_PORT", "NOT_SET"),
-        "RAILWAY_ENVIRONMENT": os.getenv("RAILWAY_ENVIRONMENT", "NOT_SET"),
-    }
+if ENVIRONMENT != "production":
+    @app.get("/env-check", response_class=JSONResponse)
+    async def env_check():
+        """Debug endpoint to check environment variables (disabled in production)"""
+        return {
+            "DEEPGRAM_API_KEY": "SET" if os.getenv("DEEPGRAM_API_KEY") else "MISSING",
+            "CEREBRAS_API_KEY": "SET" if os.getenv("CEREBRAS_API_KEY") else "MISSING",
+            "DAILY_API_KEY": "SET" if os.getenv("DAILY_API_KEY") else "MISSING",
+            # "GEMINI_API_KEY": "SET" if os.getenv("GEMINI_API_KEY") else "MISSING",
+            "DATABASE_URL": "SET" if os.getenv("DATABASE_URL") else "MISSING",
+            # "WEBAPP_PORT": os.getenv("WEBAPP_PORT", "NOT_SET"),
+            "RAILWAY_ENVIRONMENT": os.getenv("RAILWAY_ENVIRONMENT", "NOT_SET"),
+        }
 
 
 @app.get("/healthz", response_class=JSONResponse)
