@@ -25,7 +25,7 @@ DEFAULT_BOT_CONFIG = BotConfig(
 )
 
 SERVICE_API_KEYS = {
-    "gemini": os.getenv("GEMINI_API_KEY"),
+    # "gemini": os.getenv("GEMINI_API_KEY"),
     "daily": os.getenv("DAILY_API_KEY"),
     "deepgram": os.getenv("DEEPGRAM_API_KEY"),
     "cerebras": os.getenv("CEREBRAS_API_KEY"),

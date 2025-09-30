@@ -59,7 +59,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Configure CORS for Vercel frontend
+# Configure CORS for Vercel/Railway frontend
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "*")
 if allowed_origins != "*":
     allowed_origins = [origin.strip() for origin in allowed_origins.split(",")]
