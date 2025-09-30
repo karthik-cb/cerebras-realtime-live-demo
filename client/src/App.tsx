@@ -25,7 +25,10 @@ function App() {
 
   useEffect(() => {
     const abort = new AbortController();
+    console.log('VITE_SERVER_URL from env:', import.meta.env.VITE_SERVER_URL);
+    console.log('All env vars:', import.meta.env);
     const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://127.0.0.1:7860/api';
+    console.log('Final serverUrl:', serverUrl);
     console.log('Fetching from:', serverUrl);
     
     // Fetch both config and models
