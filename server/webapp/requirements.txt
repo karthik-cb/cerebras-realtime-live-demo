@@ -6,7 +6,7 @@ python-dotenv
 pydantic
 argon2-cffi
 sqlalchemy[aiosqlite,postgresql-asyncpg]
-pipecat-ai[mcp]==0.0.85
+pipecat-ai[mcp,deepgram,cerebras,openai,silero,websocket]==0.0.85
 jinja2
 cryptography
 httpx

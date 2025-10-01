@@ -26,6 +26,6 @@
     #   curl -fsS http://127.0.0.1:${PORT:-7860}/healthz || exit 1
     
     # Railway injects $PORT at runtime. Use a shell so ${PORT} expands.
-    EXPOSE 7860
-    CMD ["sh","-c","uvicorn webapp.main:app --host 0.0.0.0 --port ${PORT:-7860} --proxy-headers"]
+    EXPOSE ${PORT}
+    CMD ["sh","-c","uvicorn webapp.main:app --host 0.0.0.0 --port ${PORT} --proxy-headers"]
     
