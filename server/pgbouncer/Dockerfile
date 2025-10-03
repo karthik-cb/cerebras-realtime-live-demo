@@ -1,8 +1,5 @@
 FROM pgbouncer/pgbouncer:latest
 
-# Install additional tools for debugging (Alpine Linux uses apk)
-RUN apk add --no-cache postgresql-client
-
 # Copy configuration files
 COPY pgbouncer.ini /etc/pgbouncer/
 COPY userlist.txt /etc/pgbouncer/
