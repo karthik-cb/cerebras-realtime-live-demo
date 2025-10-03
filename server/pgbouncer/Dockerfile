@@ -1,9 +1,7 @@
 FROM pgbouncer/pgbouncer:latest
 
-# Install additional tools for debugging
-RUN apt-get update && apt-get install -y \
-    postgresql-client \
-    && rm -rf /var/lib/apt/lists/*
+# Install additional tools for debugging (Alpine Linux uses apk)
+RUN apk add --no-cache postgresql-client
 
 # Copy configuration files
 COPY pgbouncer.ini /etc/pgbouncer/
