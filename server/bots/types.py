@@ -14,6 +14,7 @@ class BotParams(BaseModel):
     actions: List[RTVIMessage] = []
     bot_profile: Optional[str] = None
     attachments: List[str] = []
+    model_preferences: Optional[dict] = None
 
 
 class BotCallbacks(BaseModel):
@@ -21,3 +22,4 @@ class BotCallbacks(BaseModel):
     on_first_participant_joined: Callable[[Mapping[str, Any]], Awaitable[None]]
     on_participant_joined: Callable[[Mapping[str, Any]], Awaitable[None]]
     on_participant_left: Callable[[Mapping[str, Any], str], Awaitable[None]]
+    conversation_id: Optional[str] = None

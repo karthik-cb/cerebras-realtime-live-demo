@@ -13,6 +13,9 @@ from common.models import (
     Message,
     MessageCreateModel,
     MessageModel,
+    InteractionMetrics,
+    InteractionMetricsModel,
+    InteractionMetricsCreateModel,
 )
 from fastapi import (
     APIRouter,
@@ -23,6 +26,7 @@ from fastapi import (
     UploadFile,
     status,
 )
+from loguru import logger
 from pydantic import ValidationError
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -223,14 +227,81 @@ async def get_conversation_messages(
 
     messages = result.scalars().all()
 
+    # Load metrics for each message separately to avoid relationship loading issues
+    messages_with_metrics = []
+    for msg in messages:
+        # Get metrics for this message
+        metrics_result = await db.execute(
+            select(InteractionMetrics).where(InteractionMetrics.message_id == msg.message_id)
+        )
+        msg_metrics = metrics_result.scalars().all()
+        
+        # Create message dict with metrics
+        msg_dict = {
+            "message_id": msg.message_id,
+            "conversation_id": msg.conversation_id,
+            "message_number": msg.message_number,
+            "content": msg.content,
+            "language_code": msg.language_code,
+            "created_at": msg.created_at,
+            "updated_at": msg.updated_at,
+            "extra_metadata": msg.extra_metadata,
+            "metrics": [InteractionMetricsModel.model_validate(metric) for metric in msg_metrics]
+        }
+        messages_with_metrics.append(MessageModel.model_validate(msg_dict))
+
     # Generate title summary if conversation has no title and has more than 3 messages
     message_count = len(messages)
     if conversation.title == "New conversation" and message_count > 3:
         background_tasks.add_task(generate_conversation_summary, conversation_id, db)
 
+    # Calculate conversation-level metrics summary
+    conversation_metrics = {
+        "total_messages": len(messages),
+        "total_latency": 0.0,
+        "total_tokens": 0,
+        "service_breakdown": {
+            "stt": {"count": 0, "total_latency": 0.0, "avg_latency": 0.0},
+            "llm": {"count": 0, "total_latency": 0.0, "avg_latency": 0.0, "total_tokens": 0},
+            "tts": {"count": 0, "total_latency": 0.0, "avg_latency": 0.0, "total_characters": 0}
+        }
+    }
+    
+    # Aggregate metrics from all messages
+    for msg in messages_with_metrics:
+        if msg.metrics:
+            for metric in msg.metrics:
+                service_type = metric.service_type
+                if service_type in conversation_metrics["service_breakdown"]:
+                    # Update service breakdown
+                    service_data = conversation_metrics["service_breakdown"][service_type]
+                    service_data["count"] += 1
+                    
+                    if metric.total_latency:
+                        latency = float(metric.total_latency)
+                        service_data["total_latency"] += latency
+                        conversation_metrics["total_latency"] += latency
+                    
+                    if metric.prompt_tokens:
+                        conversation_metrics["total_tokens"] += metric.prompt_tokens
+                        service_data["total_tokens"] += metric.prompt_tokens
+                    
+                    if metric.completion_tokens:
+                        conversation_metrics["total_tokens"] += metric.completion_tokens
+                        service_data["total_tokens"] += metric.completion_tokens
+                    
+                    if metric.characters_processed:
+                        service_data["total_characters"] += metric.characters_processed
+    
+    # Calculate averages
+    for service_type, data in conversation_metrics["service_breakdown"].items():
+        if data["count"] > 0:
+            data["avg_latency"] = data["total_latency"] / data["count"]
+
     return {
         "conversation": ConversationModel.model_validate(conversation),
-        "messages": [MessageModel.model_validate(msg) for msg in messages],
+        "messages": messages_with_metrics,
+        "metrics_summary": conversation_metrics,
     }
 
 
@@ -296,3 +367,95 @@ async def upload_file(file: UploadFile = File(...), db: AsyncSession = Depends(g
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{conversation_id}/messages/{message_id}/metrics", response_model=list[InteractionMetricsModel])
+async def get_message_metrics(
+    conversation_id: str,
+    message_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get metrics for a specific message in a conversation.
+    
+    Args:
+        conversation_id (str): The unique identifier of the conversation.
+        message_id (str): The unique identifier of the message.
+        db (AsyncSession): Database session dependency.
+        
+    Returns:
+        list[InteractionMetricsModel]: A list of metrics for the message.
+        
+    Raises:
+        HTTPException: If the conversation or message is not found.
+    """
+    # Verify conversation exists
+    conversation_result = await db.execute(
+        select(Conversation).where(Conversation.conversation_id == conversation_id)
+    )
+    conversation = conversation_result.scalars().first()
+    
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    # Verify message exists and belongs to conversation
+    message_result = await db.execute(
+        select(Message).where(
+            Message.message_id == message_id,
+            Message.conversation_id == conversation_id
+        )
+    )
+    message = message_result.scalars().first()
+    
+    if not message:
+        raise HTTPException(status_code=404, detail="Message not found")
+    
+    # Get metrics for the message
+    metrics_result = await db.execute(
+        select(InteractionMetrics)
+        .where(InteractionMetrics.message_id == message_id)
+        .order_by(InteractionMetrics.created_at)
+    )
+    
+    metrics = metrics_result.scalars().all()
+    
+    return [InteractionMetricsModel.model_validate(metric) for metric in metrics]
+
+
+@router.post("/{conversation_id}/messages/{message_id}/metrics", response_model=InteractionMetricsModel)
+async def create_message_metrics(
+    conversation_id: str,
+    message_id: str,
+    metrics_data: InteractionMetricsCreateModel,
+    db: AsyncSession = Depends(get_db),
+):
+    """Create metrics for a specific message."""
+    # Verify conversation exists
+    conversation_result = await db.execute(
+        select(Conversation).where(Conversation.conversation_id == conversation_id)
+    )
+    conversation = conversation_result.scalars().first()
+    
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    # Verify message exists and belongs to conversation
+    message_result = await db.execute(
+        select(Message).where(
+            Message.message_id == message_id,
+            Message.conversation_id == conversation_id
+        )
+    )
+    message = message_result.scalars().first()
+    
+    if not message:
+        raise HTTPException(status_code=404, detail="Message not found")
+    
+    # Create metrics
+    metrics = await InteractionMetrics.create_metrics(
+        db_session=db,
+        message_id=message_id,
+        **metrics_data.model_dump()
+    )
+    
+    return InteractionMetricsModel.model_validate(metrics)

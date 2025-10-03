@@ -6,6 +6,7 @@ from bots.http.frame_serializer import BotFrameSerializer
 from bots.persistent_context import PersistentContext
 from bots.rtvi import create_rtvi_processor
 from bots.types import BotConfig, BotParams
+from bots.metrics_capture import create_metrics_collector, create_service_tracker
 from common.config import SERVICE_API_KEYS
 from common.models import Attachment, Message
 from fastapi import HTTPException, status
@@ -66,9 +67,13 @@ async def http_bot_pipeline(
     
     tools = ToolsSchema(standard_tools=[weather_function])
     
+    # Get model preferences from params, fallback to defaults
+    model_prefs = params.model_preferences or {}
+    llm_model = model_prefs.get("llm", "gpt-oss-120b")
+    
     llm = CerebrasLLMService(
         api_key=str(SERVICE_API_KEYS["cerebras"]),
-        model="gpt-oss-120b",
+        model=llm_model,
         temperature=0.7,
         max_tokens=1000
     )
@@ -122,6 +127,15 @@ async def http_bot_pipeline(
     
     combined_tools = ToolsSchema(standard_tools=all_tools)
 
+    system_prompt_list = [
+        "You are a helpful assistant with access to weather information and MCP tools.",
+        "When users ask about weather, use the get_current_weather function to fetch real-time data.", 
+        "You also have access to MCP tools for file operations and other external services.", 
+        "Keep responses concise and always mention what you're doing when using functions or tools.",
+        
+    ]
+    
+    logger.info(f"🔧 Combined tools: {[tool.name for tool in all_tools]}")
     context = OpenAILLMContext(
         messages=[
             {

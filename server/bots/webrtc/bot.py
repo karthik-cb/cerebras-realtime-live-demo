@@ -66,8 +66,12 @@ async def _pipeline_task(
             params=PipelineParams(
                 allow_interruptions=True,
                 enable_metrics=True,
+                enable_usage_metrics=True,
                 send_initial_empty_metrics=False,
             ),
+            enable_tracing=True,  # Enable OpenTelemetry tracing
+            enable_turn_tracking=True,  # Enable turn tracking
+            conversation_id=params.conversation_id,  # Set conversation ID for tracing
         )
 
         return task
@@ -83,7 +87,7 @@ async def _bot_main(
 ):
     subprocess_session_factory = DatabaseSessionFactory()
     async with subprocess_session_factory() as db:
-        bot_runner = BotPipelineRunner()
+        bot_runner = BotPipelineRunner(conversation_id=params.conversation_id)
         try:
             task_creator = await _pipeline_task(params, config, room_url, room_token, db)
             await bot_runner.start(task_creator)

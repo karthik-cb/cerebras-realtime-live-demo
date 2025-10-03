@@ -7,6 +7,7 @@ from common.models import Attachment, Conversation
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse, StreamingResponse
 from loguru import logger
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from webapp import get_db
 
@@ -109,15 +110,31 @@ async def connect(
             if not params.conversation_id:
                 logger.info("Creating new conversation for voice-to-voice")
                 # Create title with timestamp
-                from datetime import datetime
+                from datetime import datetime, timedelta
                 timestamp = datetime.now().strftime("%H:%M")
                 title = f"Voice Conversation {timestamp}"
-                conversation = Conversation(title=title)
-                db.add(conversation)
-                await db.commit()
-                await db.refresh(conversation)
-                params.conversation_id = conversation.conversation_id
-                logger.info(f"Created conversation with ID: {params.conversation_id} and title: {title}")
+                
+                # Check if a conversation was created very recently (within 5 seconds) to prevent duplicates
+                recent_cutoff = datetime.utcnow() - timedelta(seconds=5)
+                recent_conversation = await db.execute(
+                    select(Conversation)
+                    .where(Conversation.title == title)
+                    .where(Conversation.created_at >= recent_cutoff)
+                    .order_by(Conversation.created_at.desc())
+                    .limit(1)
+                )
+                existing_conversation = recent_conversation.scalar_one_or_none()
+                
+                if existing_conversation:
+                    logger.info(f"Using recent conversation {existing_conversation.conversation_id} instead of creating new one")
+                    params.conversation_id = existing_conversation.conversation_id
+                else:
+                    conversation = Conversation(title=title)
+                    db.add(conversation)
+                    await db.commit()
+                    await db.refresh(conversation)
+                    params.conversation_id = conversation.conversation_id
+                    logger.info(f"Created conversation with ID: {params.conversation_id} and title: {title}")
             
             logger.info("Creating Daily room...")
             room, user_token, bot_token = await bot_create(transport_api_key)

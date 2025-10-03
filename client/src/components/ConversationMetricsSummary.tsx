@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ChevronDown, ChevronRight, Clock, Zap, Database, Mic, Brain, Volume2, BarChart3 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Clock, Zap, Mic, Brain, Volume2, BarChart3 } from 'lucide-react';
 
 interface ServiceBreakdown {
   count: number;
@@ -20,7 +20,6 @@ interface ConversationMetricsSummary {
     stt: ServiceBreakdown;
     llm: ServiceBreakdown;
     tts: ServiceBreakdown;
-    mcp: ServiceBreakdown;
   };
 }
 
@@ -36,8 +35,6 @@ const getServiceIcon = (serviceType: string) => {
       return <Brain className="h-4 w-4" />;
     case 'tts':
       return <Volume2 className="h-4 w-4" />;
-    case 'mcp':
-      return <Database className="h-4 w-4" />;
     default:
       return <Zap className="h-4 w-4" />;
   }
@@ -51,37 +48,52 @@ const getServiceColor = (serviceType: string) => {
       return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
     case 'tts':
       return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-    case 'mcp':
-      return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
     default:
       return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
   }
 };
 
 const formatLatency = (latency: number) => {
-  if (latency < 0.001) return `${(latency * 1000).toFixed(2)}ms`;
-  return `${latency.toFixed(3)}s`;
+  if (latency < 0.001) return `${(latency * 1000).toFixed(1)}ms`;
+  if (latency < 1) return `${(latency * 1000).toFixed(0)}ms`;
+  return `${latency.toFixed(2)}s`;
 };
 
 const formatTokens = (tokens: number) => {
+  if (tokens >= 1000) {
+    return `${(tokens / 1000).toFixed(1)}k`;
+  }
   return tokens.toLocaleString();
+};
+
+const getPerformanceGrade = (latency: number) => {
+  if (latency < 0.5) return { grade: "A+", color: "text-green-600", bg: "bg-green-50" };
+  if (latency < 1.0) return { grade: "A", color: "text-green-600", bg: "bg-green-50" };
+  if (latency < 2.0) return { grade: "B", color: "text-yellow-600", bg: "bg-yellow-50" };
+  if (latency < 3.0) return { grade: "C", color: "text-orange-600", bg: "bg-orange-50" };
+  return { grade: "D", color: "text-red-600", bg: "bg-red-50" };
 };
 
 export default function ConversationMetricsSummary({ metrics }: ConversationMetricsSummaryProps) {
   const [isOpen, setIsOpen] = useState(false);
 
-  if (!metrics || metrics.total_latency === 0) {
+  if (!metrics) {
+    return null;
+  }
+  
+  if (metrics.total_latency === 0) {
     return null;
   }
 
   const { total_messages, total_latency, total_tokens, service_breakdown } = metrics;
+  const overallGrade = getPerformanceGrade(total_latency);
 
   return (
     <div className="mt-4 mb-4">
       <Button
         variant="outline"
         size="sm"
-        className="h-10 px-4 text-sm font-medium"
+        className="h-12 px-4 text-sm font-medium bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200 hover:from-blue-100 hover:to-purple-100"
         onClick={() => setIsOpen(!isOpen)}
       >
         {isOpen ? (
@@ -90,10 +102,13 @@ export default function ConversationMetricsSummary({ metrics }: ConversationMetr
           <ChevronRight className="h-4 w-4 mr-2" />
         )}
         <BarChart3 className="h-4 w-4 mr-2" />
-        Conversation Performance Summary
+        Performance Analytics
         <Badge variant="secondary" className="ml-2">
           {total_messages} messages
         </Badge>
+        <div className={`ml-2 px-2 py-1 rounded-full text-xs font-bold ${overallGrade.bg} ${overallGrade.color}`}>
+          {overallGrade.grade}
+        </div>
       </Button>
       
       {isOpen && (
@@ -131,43 +146,67 @@ export default function ConversationMetricsSummary({ metrics }: ConversationMetr
           </Card>
 
           {/* Service Breakdown */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {Object.entries(service_breakdown).map(([serviceType, data]) => {
               if (data.count === 0) return null;
               
+              const serviceGrade = getPerformanceGrade(data.avg_latency);
+              const serviceNames = {
+                'stt': 'Speech-to-Text',
+                'llm': 'Language Model', 
+                'tts': 'Text-to-Speech'
+              };
+              
               return (
-                <Card key={serviceType} className="bg-muted/30">
+                <Card key={serviceType} className="bg-white border-2 hover:shadow-lg transition-all duration-200">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      {getServiceIcon(serviceType)}
-                      <span className="capitalize">{serviceType.toUpperCase()}</span>
-                      <Badge className={getServiceColor(serviceType)}>
-                        {data.count} calls
-                      </Badge>
+                    <CardTitle className="text-sm flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {getServiceIcon(serviceType)}
+                        <span className="font-semibold">{serviceNames[serviceType as keyof typeof serviceNames]}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge className={getServiceColor(serviceType)}>
+                          {data.count} call{data.count !== 1 ? 's' : ''}
+                        </Badge>
+                        <div className={`px-2 py-1 rounded-full text-xs font-bold ${serviceGrade.bg} ${serviceGrade.color}`}>
+                          {serviceGrade.grade}
+                        </div>
+                      </div>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Total Latency:</span>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Average Response:</span>
+                        <span className="font-semibold text-lg">{formatLatency(data.avg_latency)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Total Processing:</span>
                         <span className="font-medium">{formatLatency(data.total_latency)}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Avg Latency:</span>
-                        <span className="font-medium">{formatLatency(data.avg_latency)}</span>
-                      </div>
                       {data.total_tokens && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Tokens:</span>
+                        <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground">Tokens Processed:</span>
                           <span className="font-medium">{formatTokens(data.total_tokens)}</span>
                         </div>
                       )}
                       {data.total_characters && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Characters:</span>
+                        <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground">Characters Generated:</span>
                           <span className="font-medium">{formatTokens(data.total_characters)}</span>
                         </div>
                       )}
+                      {/* Performance bar */}
+                      <div className="w-full bg-gray-100 rounded-full h-2 mt-3">
+                        <div 
+                          className={`h-2 rounded-full transition-all duration-500 ${
+                            serviceType === 'stt' ? 'bg-blue-400' :
+                            serviceType === 'llm' ? 'bg-purple-400' : 'bg-green-400'
+                          }`}
+                          style={{ width: `${Math.min((data.avg_latency / 2) * 100, 100)}%` }}
+                        ></div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -176,7 +215,7 @@ export default function ConversationMetricsSummary({ metrics }: ConversationMetr
           </div>
 
           {/* Performance Insights */}
-          <Card className="bg-muted/20">
+          <Card className="bg-gradient-to-r from-gray-50 to-blue-50 border-gray-200">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center gap-2">
                 <Clock className="h-4 w-4" />
@@ -184,19 +223,41 @@ export default function ConversationMetricsSummary({ metrics }: ConversationMetr
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="text-sm space-y-1">
-                {total_latency < 5 && (
-                  <div className="text-green-600">✅ Excellent performance - under 5 seconds total</div>
+              <div className="text-sm space-y-2">
+                {total_latency < 1 && (
+                  <div className="flex items-center gap-2 text-green-600">
+                    <span className="text-lg">🚀</span>
+                    <span>Excellent performance - {formatLatency(total_latency)} total response time</span>
+                  </div>
                 )}
-                {total_latency >= 5 && total_latency < 15 && (
-                  <div className="text-yellow-600">⚠️ Good performance - {formatLatency(total_latency)} total latency</div>
+                {total_latency >= 1 && total_latency < 3 && (
+                  <div className="flex items-center gap-2 text-yellow-600">
+                    <span className="text-lg">⚡</span>
+                    <span>Good performance - {formatLatency(total_latency)} total response time</span>
+                  </div>
                 )}
-                {total_latency >= 15 && (
-                  <div className="text-red-600">❌ High latency detected - {formatLatency(total_latency)} total latency</div>
+                {total_latency >= 3 && total_latency < 5 && (
+                  <div className="flex items-center gap-2 text-orange-600">
+                    <span className="text-lg">⚠️</span>
+                    <span>Moderate latency - {formatLatency(total_latency)} total response time</span>
+                  </div>
+                )}
+                {total_latency >= 5 && (
+                  <div className="flex items-center gap-2 text-red-600">
+                    <span className="text-lg">🐌</span>
+                    <span>High latency detected - {formatLatency(total_latency)} total response time</span>
+                  </div>
                 )}
                 {total_tokens > 1000 && (
-                  <div className="text-blue-600">📊 High token usage - {formatTokens(total_tokens)} tokens processed</div>
+                  <div className="flex items-center gap-2 text-blue-600">
+                    <span className="text-lg">📊</span>
+                    <span>High token usage - {formatTokens(total_tokens)} tokens processed</span>
+                  </div>
                 )}
+                <div className="flex items-center gap-2 text-gray-600">
+                  <span className="text-lg">💡</span>
+                  <span>Average response time per message: {formatLatency(total_latency / total_messages)}</span>
+                </div>
               </div>
             </CardContent>
           </Card>

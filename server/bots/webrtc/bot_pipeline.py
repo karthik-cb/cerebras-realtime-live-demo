@@ -4,6 +4,7 @@ from typing import Any
 from bots.persistent_context import PersistentContext
 from bots.rtvi import create_rtvi_processor
 from bots.types import BotCallbacks, BotConfig, BotParams
+from bots.metrics_capture import create_metrics_collector, create_service_tracker
 from common.config import SERVICE_API_KEYS
 from common.models import Conversation, Message
 from loguru import logger
@@ -75,10 +76,43 @@ async def bot_pipeline(
         raise Exception(f"Conversation {params.conversation_id} not found")
     messages = [getattr(msg, "content") for msg in conversation.messages]
 
+    # Initialize Pipecat metrics capture with a temporary message
+    # This will be updated with actual message IDs when messages are created
+    temp_message = await Message.create_message(
+        db_session=db,
+        conversation_id=params.conversation_id,
+        content={"role": "system", "content": "Metrics collection initialized"},
+        extra_metadata={"metrics_init": True}
+    )
+    
+    # Initialize OpenTelemetry tracing for metrics collection
+    try:
+        from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+        from pipecat.utils.tracing.setup import setup_tracing
+        
+        # Set up OpenTelemetry tracing with console export for debugging
+        setup_tracing(
+            service_name="cerebras-voice-demo",
+            exporter=None,  # Use console export for now
+            console_export=True,  # Enable console export for debugging
+        )
+        
+        logger.info(f"📊 OpenTelemetry tracing initialized for conversation {params.conversation_id}")
+    except ImportError:
+        logger.warning("📊 OpenTelemetry not available - using basic metrics collection")
+    except Exception as e:
+        logger.error(f"❌ Failed to setup OpenTelemetry tracing: {e}")
+
     #
     # TTS-LLM-STT Services
     #
 
+    # Get model preferences from params, fallback to defaults
+    model_prefs = params.model_preferences or {}
+    stt_model = model_prefs.get("stt", "nova-2-general")
+    llm_model = model_prefs.get("llm", "gpt-oss-120b")
+    tts_voice = model_prefs.get("tts", "aura-luna-en")
+    
     # Create our custom TTS-LLM-STT services
     # Deepgram STT Service
     stt_api_key = SERVICE_API_KEYS.get("deepgram")
@@ -88,29 +122,14 @@ async def bot_pipeline(
     stt = DeepgramSTTService(
         api_key=stt_api_key,
         live_options=LiveOptions(
-            model="nova-2-general",
+            model=stt_model,
             language="en",
             smart_format=True,
             sample_rate=16000
         )
     )
     
-    # Add event handlers for debugging - using correct event names
-    @stt.event_handler("on_started")
-    async def on_stt_started(service):
-        logger.info("🎤 STT started - listening for speech")
-    
-    @stt.event_handler("on_stopped")
-    async def on_stt_stopped(service):
-        logger.info("🎤 STT stopped")
-    
-    @stt.event_handler("on_text_frame")
-    async def on_text_frame(service, frame):
-        logger.info(f"🎤 Transcription: {frame.text}")
-    
-    @stt.event_handler("on_error")
-    async def on_stt_error(service, error):
-        logger.error(f"🎤 STT Error: {error}")
+    # STT service is ready - Pipecat will handle metrics logging automatically
     
     # Cerebras LLM Service with Function Calling
     llm_api_key = SERVICE_API_KEYS.get("cerebras")
@@ -139,7 +158,7 @@ async def bot_pipeline(
     
     llm = CerebrasLLMService(
         api_key=llm_api_key,
-        model="gpt-oss-120b",
+        model=llm_model,
         temperature=0.7,
         max_tokens=1000
     )
@@ -376,22 +395,7 @@ async def bot_pipeline(
     combined_tools = ToolsSchema(standard_tools=all_tools)
     logger.info(f"🔧 Combined tools: {[tool.name for tool in all_tools]}")
     
-    # Add event handlers for debugging - using correct event names
-    @llm.event_handler("on_started")
-    async def on_llm_started(service):
-        logger.info("🧠 LLM started - ready to process text")
-    
-    @llm.event_handler("on_stopped")
-    async def on_llm_stopped(service):
-        logger.info("🧠 LLM stopped")
-    
-    @llm.event_handler("on_text_frame")
-    async def on_llm_text_frame(service, frame):
-        logger.info(f"🧠 LLM Response: {frame.text}")
-    
-    @llm.event_handler("on_error")
-    async def on_llm_error(service, error):
-        logger.error(f"🧠 LLM Error: {error}")
+    # LLM service is ready - Pipecat will handle metrics logging automatically
     
     # Add function call event handlers
     @llm.event_handler("on_function_calls_started")
@@ -411,27 +415,12 @@ async def bot_pipeline(
     
     tts = DeepgramTTSService(
         api_key=tts_api_key,
-        voice="aura-luna-en",
+        voice=tts_voice,
         sample_rate=24000,
         encoding="linear16"
     )
     
-    # Add event handlers for debugging - using correct event names
-    @tts.event_handler("on_started")
-    async def on_tts_started(service):
-        logger.info("🔊 TTS started - ready to generate audio")
-    
-    @tts.event_handler("on_stopped")
-    async def on_tts_stopped(service):
-        logger.info("🔊 TTS stopped")
-    
-    @tts.event_handler("on_audio_frame")
-    async def on_tts_audio_frame(service, frame):
-        logger.info(f"🔊 TTS Audio generated: {len(frame.audio)} bytes")
-    
-    @tts.event_handler("on_error")
-    async def on_tts_error(service, error):
-        logger.error(f"🔊 TTS Error: {error}")
+    # TTS service is ready - Pipecat will handle metrics logging automatically
     
     # Create context and aggregators with function calling tools and MCP tools
     context = OpenAILLMContext(
@@ -469,9 +458,15 @@ async def bot_pipeline(
     async def on_context_message(messages: list[Any]):
         logger.debug(f"{len(messages)} message(s) received for storage")
         try:
-            await Message.create_messages(
+            created_messages = await Message.create_messages(
                 db_session=db, conversation_id=params.conversation_id, messages=messages
             )
+            
+            # Log message creation for metrics tracking
+            if created_messages:
+                latest_message = created_messages[-1]
+                logger.info(f"📊 Message created: {latest_message.message_id} for conversation {params.conversation_id}")
+                
         except Exception as e:
             logger.error(f"Error storing messages: {e}")
             raise e

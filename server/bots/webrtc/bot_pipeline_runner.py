@@ -8,6 +8,7 @@ from pipecat.pipeline.task import PipelineTask
 from pipecat.pipeline.runner import PipelineRunner
 
 from bots.types import BotCallbacks
+from bots.conversation_metrics import generate_and_store_conversation_metrics
 
 from loguru import logger
 
@@ -16,13 +17,14 @@ DEFAULT_MAX_PARTICIPANT_JOIN_SECONDS = 20
 
 
 class BotPipelineRunner:
-    def __init__(self):
+    def __init__(self, conversation_id: str = None):
         self._participant_joined = False
         self._callbacks = BotCallbacks(
             on_first_participant_joined=self._on_first_participant_joined,
             on_participant_joined=self._on_participant_joined,
             on_participant_left=self._on_participant_left,
             on_call_state_updated=self._on_call_state_updated,
+            conversation_id=conversation_id,
         )
         self._task = None
 
@@ -61,12 +63,28 @@ class BotPipelineRunner:
         logger.info(f"Participant left because {reason}. Exiting.")
         if self._task:
             await self._task.queue_frame(EndFrame())
+        
+        # Generate conversation metrics when participant leaves
+        if self._callbacks.conversation_id:
+            logger.info(f"📊 Generating conversation metrics for {self._callbacks.conversation_id}")
+            try:
+                await generate_and_store_conversation_metrics(self._callbacks.conversation_id)
+            except Exception as e:
+                logger.error(f"Failed to generate conversation metrics: {e}")
 
     async def _on_call_state_updated(self, state):
         if state == "left":
             logger.info("It seems we are leaving the call. Exiting.")
             if self._task:
                 await self._task.queue_frame(EndFrame())
+            
+            # Generate conversation metrics when call state changes to left
+            if self._callbacks.conversation_id:
+                logger.info(f"📊 Generating conversation metrics for {self._callbacks.conversation_id}")
+                try:
+                    await generate_and_store_conversation_metrics(self._callbacks.conversation_id)
+                except Exception as e:
+                    logger.error(f"Failed to generate conversation metrics: {e}")
 
     #
     # Timeout task

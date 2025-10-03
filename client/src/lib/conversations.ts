@@ -46,7 +46,6 @@ interface ConversationMetricsSummary {
     stt: { count: number; total_latency: number; avg_latency: number };
     llm: { count: number; total_latency: number; avg_latency: number; total_tokens: number };
     tts: { count: number; total_latency: number; avg_latency: number; total_characters: number };
-    mcp: { count: number; total_latency: number; avg_latency: number };
   };
 }
 

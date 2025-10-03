@@ -97,6 +97,7 @@ class Message(Base):
 
     conversation: Mapped[Conversation] = relationship("Conversation", back_populates="messages")
     attachments: Mapped[List["Attachment"]] = relationship("Attachment", back_populates="message")
+    metrics: Mapped[List["InteractionMetrics"]] = relationship("InteractionMetrics", back_populates="message")
 
     __table_args__ = (
         Index("idx_messages_conversation_id", "conversation_id"),
@@ -171,6 +172,79 @@ class Message(Base):
         except Exception as e:
             await db_session.rollback()
             raise e
+
+
+class InteractionMetrics(Base):
+    __tablename__ = "interaction_metrics"
+
+    metrics_id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    message_id = Column(
+        String,
+        ForeignKey("messages.message_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    service_type = Column(String(50), nullable=False)  # 'stt', 'llm', 'tts', 'mcp'
+    service_name = Column(String(100), nullable=False)  # e.g., 'DeepgramSTTService', 'CerebrasLLMService'
+    interaction_id = Column(String(100), nullable=True)  # Unique identifier for this interaction
+    
+    # Latency metrics (in seconds)
+    ttfb = Column(String(20), nullable=True)  # Time to first byte
+    processing_time = Column(String(20), nullable=True)  # Processing time
+    total_latency = Column(String(20), nullable=True)  # Total latency
+    
+    # Usage metrics
+    prompt_tokens = Column(Integer, nullable=True)
+    completion_tokens = Column(Integer, nullable=True)
+    characters_processed = Column(Integer, nullable=True)
+    
+    # Additional metadata
+    service_metadata = Column(JSON, nullable=True)  # Store additional service-specific data
+    
+    created_at = Column(TIMESTAMP(timezone=True), server_default=get_current_timestamp())
+
+    message: Mapped["Message"] = relationship("Message", back_populates="metrics")
+
+    __table_args__ = (
+        Index("idx_metrics_message_id", "message_id"),
+        Index("idx_metrics_service_type", "service_type"),
+        Index("idx_metrics_interaction_id", "interaction_id"),
+    )
+
+    @staticmethod
+    async def create_metrics(
+        db_session: AsyncSession,
+        message_id: str,
+        service_type: str,
+        service_name: str,
+        interaction_id: Optional[str] = None,
+        ttfb: Optional[str] = None,
+        processing_time: Optional[str] = None,
+        total_latency: Optional[str] = None,
+        prompt_tokens: Optional[int] = None,
+        completion_tokens: Optional[int] = None,
+        characters_processed: Optional[int] = None,
+        service_metadata: Optional[dict] = None,
+    ):
+        """Create a new interaction metrics record"""
+        metrics = InteractionMetrics(
+            message_id=message_id,
+            service_type=service_type,
+            service_name=service_name,
+            interaction_id=interaction_id,
+            ttfb=ttfb,
+            processing_time=processing_time,
+            total_latency=total_latency,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            characters_processed=characters_processed,
+            service_metadata=service_metadata,
+        )
+        
+        db_session.add(metrics)
+        await db_session.commit()
+        await db_session.refresh(metrics)
+        
+        return metrics
 
 
 class Attachment(Base):
@@ -266,8 +340,45 @@ class MessageModel(BaseModel):
     created_at: datetime
     updated_at: datetime
     extra_metadata: Optional[dict] = None
+    metrics: Optional[List["InteractionMetricsModel"]] = None
 
     model_config = {"from_attributes": True, "arbitrary_types_allowed": True}
+
+
+class InteractionMetricsModel(BaseModel):
+    metrics_id: uuid.UUID
+    message_id: uuid.UUID
+    service_type: str
+    service_name: str
+    interaction_id: Optional[str] = None
+    ttfb: Optional[str] = None
+    processing_time: Optional[str] = None
+    total_latency: Optional[str] = None
+    prompt_tokens: Optional[int] = None
+    completion_tokens: Optional[int] = None
+    characters_processed: Optional[int] = None
+    service_metadata: Optional[dict] = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True, "arbitrary_types_allowed": True}
+
+
+class InteractionMetricsCreateModel(BaseModel):
+    service_type: str
+    service_name: str
+    interaction_id: Optional[str] = None
+    ttfb: Optional[str] = None
+    processing_time: Optional[str] = None
+    total_latency: Optional[str] = None
+    prompt_tokens: Optional[int] = None
+    completion_tokens: Optional[int] = None
+    characters_processed: Optional[int] = None
+    service_metadata: Optional[dict] = None
+
+    model_config = {
+        "from_attributes": True,
+        "extra": "allow",
+    }
 
 
 class MessageWithConversationModel(BaseModel):
