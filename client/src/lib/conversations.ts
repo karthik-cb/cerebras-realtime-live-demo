@@ -6,6 +6,7 @@ export interface ConversationModel {
   created_at: string;
   updated_at: string;
   messages?: Message[];
+  metrics_summary?: ConversationMetricsSummary;
 }
 
 interface GetConversationsParams {
@@ -37,9 +38,22 @@ export async function getConversations({
   }
 }
 
+interface ConversationMetricsSummary {
+  total_messages: number;
+  total_latency: number;
+  total_tokens: number;
+  service_breakdown: {
+    stt: { count: number; total_latency: number; avg_latency: number };
+    llm: { count: number; total_latency: number; avg_latency: number; total_tokens: number };
+    tts: { count: number; total_latency: number; avg_latency: number; total_characters: number };
+    mcp: { count: number; total_latency: number; avg_latency: number };
+  };
+}
+
 interface GetConversationAndMessagesResponse {
   conversation: ConversationModel;
   messages: Message[];
+  metrics_summary: ConversationMetricsSummary;
 }
 
 export async function getConversation(conversationId: string) {
@@ -55,6 +69,7 @@ export async function getConversation(conversationId: string) {
       const conversation: ConversationModel = {
         ...json.conversation,
         messages: json.messages,
+        metrics_summary: json.metrics_summary,
       };
       return conversation;
     }

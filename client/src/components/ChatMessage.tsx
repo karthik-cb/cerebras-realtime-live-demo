@@ -207,6 +207,8 @@ export default function ChatMessage({ isSpeaking = false, message }: Props) {
               <span className="animate-pulseGrow w-4 h-4 rounded-full bg-foreground/40" />
             </div>
           )}
+          
+          {/* Per-message metrics removed - now using conversation-level metrics summary */}
           {images.length > 0 && (
             <ScrollArea className="w-full whitespace-nowrap rounded-md mt-2">
               <div className="flex w-max gap-1">

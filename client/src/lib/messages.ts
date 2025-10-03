@@ -12,6 +12,22 @@ export interface ImageContent {
   };
 }
 
+export interface InteractionMetrics {
+  metrics_id: string;
+  message_id: string;
+  service_type: string;
+  service_name: string;
+  interaction_id?: string;
+  ttfb?: string;
+  processing_time?: string;
+  total_latency?: string;
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  characters_processed?: number;
+  service_metadata?: Record<string, any>;
+  created_at: string;
+}
+
 export interface Message {
   created_at: string;
   content: {
@@ -23,6 +39,7 @@ export interface Message {
   message_id: string;
   message_number: number;
   updated_at: string;
+  metrics?: InteractionMetrics[];
 }
 
 export const addNewLinesBeforeCodeblocks = (markdown: string) => {

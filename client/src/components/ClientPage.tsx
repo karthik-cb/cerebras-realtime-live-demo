@@ -35,6 +35,7 @@ export function ClientPage() {
     setConversationType,
     webrtcEnabled,
     websocketEnabled,
+    modelPreferences,
   } = useAppState();
 
   console.log('ClientPage - websocketEnabled:', websocketEnabled, 'webrtcEnabled:', webrtcEnabled);
@@ -95,6 +96,7 @@ export function ClientPage() {
           bot_profile:
             conversationType === "text-voice" ? "vision" : "voice-to-voice",
           conversation_id: "",
+          model_preferences: modelPreferences,
         },
       },
     });
@@ -110,6 +112,15 @@ export function ClientPage() {
       conversation_id: conversationId,
     };
   }, [client, conversationId]);
+
+  // Update model preferences without recreating the client
+  useEffect(() => {
+    if (!client) return;
+    client.params.requestData = {
+      ...(client.params.requestData ?? {}),
+      model_preferences: modelPreferences,
+    };
+  }, [client, modelPreferences]);
 
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
 
@@ -207,6 +218,7 @@ export function ClientPage() {
             <ChatMessages
               autoscroll={!showScrollToBottom}
               messages={messages}
+              conversation={conversation}
             />
           ) : conversationType === "text-voice" ? (
             <div className="flex flex-col gap-4 items-center justify-center h-full my-auto">
