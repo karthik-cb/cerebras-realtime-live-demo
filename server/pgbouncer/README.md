@@ -14,12 +14,12 @@ This directory contains the configuration files needed to deploy PgBouncer as a 
 
 2. **Configure Environment Variables**:
    - Copy values from `railway.env.example`
-   - Set individual PostgreSQL connection variables:
-     - `POSTGRES_HOST` - Your PostgreSQL service hostname
-     - `POSTGRES_DB` - Your database name
-     - `POSTGRES_USER` - Your database username
-     - `POSTGRES_PASSWORD` - Your database password
-     - `POSTGRES_PORT` - Your database port (usually 5432)
+   - Set individual PostgreSQL connection variables (PgBouncer expects `DATABASES_` prefix):
+     - `DATABASES_HOST` - Your PostgreSQL service hostname
+     - `DATABASES_DB` - Your database name
+     - `DATABASES_USER` - Your database username
+     - `DATABASES_PASSWORD` - Your database password
+     - `DATABASES_PORT` - Your database port (usually 5432)
    - Generate MD5 hash: `echo -n "yourpassword" | md5sum`
    - Set `POSTGRES_PASSWORD_HASH` to the generated hash
 
