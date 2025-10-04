@@ -16,12 +16,27 @@ class DatabaseSessionFactory:
     _initialized: bool = False
 
     def __new__(cls) -> "DatabaseSessionFactory":
-        if cls._instance is None:
-            cls._instance = super(DatabaseSessionFactory, cls).__new__(cls)
-        return cls._instance
+        # Environment-aware singleton behavior
+        environment = os.getenv("ENVIRONMENT", "development").lower()
+        is_railway = bool(os.getenv("RAILWAY_ENVIRONMENT"))
+        is_production = environment == "production" or is_railway
+        
+        if is_production:
+            # Production: Create new instance for each process
+            logger.debug("Creating new DatabaseSessionFactory instance (production mode)")
+            return super(DatabaseSessionFactory, cls).__new__(cls)
+        else:
+            # Development: Use singleton for shared memory efficiency
+            if cls._instance is None:
+                logger.debug("Creating singleton DatabaseSessionFactory instance (development mode)")
+                cls._instance = super(DatabaseSessionFactory, cls).__new__(cls)
+            else:
+                logger.debug("Reusing singleton DatabaseSessionFactory instance (development mode)")
+            return cls._instance
 
     def __init__(self):
-        if self._initialized:
+        # Only initialize if not already done (for development singleton)
+        if hasattr(self, '_initialized') and self._initialized:
             return
 
         db_url = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./sesame.db")

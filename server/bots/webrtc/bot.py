@@ -2,6 +2,7 @@ import asyncio
 import os
 import ssl
 import sys
+import threading
 from multiprocessing import Process
 from typing import Awaitable, Callable
 
@@ -23,6 +24,18 @@ from pipecat.transports.daily.utils import (
 )
 
 MAX_SESSION_TIME = int(os.getenv("BOT_MAX_VOICE_SESSION_TIME", 15 * 60)) or 15 * 60
+
+
+def get_concurrency_mode():
+    """Determine concurrency mode based on environment."""
+    environment = os.getenv("ENVIRONMENT", "development").lower()
+    is_railway = bool(os.getenv("RAILWAY_ENVIRONMENT"))
+    is_production = environment == "production" or is_railway
+    
+    mode = "multiprocessing" if is_production else "threading"
+    logger.debug(f"Using {mode} concurrency mode (ENVIRONMENT={environment}, RAILWAY_ENVIRONMENT={is_railway})")
+    
+    return mode
 
 
 async def _cleanup(room_url: str, config: BotConfig):
@@ -85,7 +98,17 @@ async def _bot_main(
     room_url: str,
     room_token: str,
 ):
-    subprocess_session_factory = DatabaseSessionFactory()
+    """Main bot function that works in both threading and multiprocessing modes."""
+    concurrency_mode = get_concurrency_mode()
+    
+    if concurrency_mode == "multiprocessing":
+        # Production: Create new database session factory for this process
+        subprocess_session_factory = DatabaseSessionFactory()
+        await subprocess_session_factory.initialize_schema()
+    else:
+        # Development: Use the shared singleton factory
+        subprocess_session_factory = DatabaseSessionFactory()
+    
     async with subprocess_session_factory() as db:
         bot_runner = BotPipelineRunner(conversation_id=params.conversation_id)
         try:
@@ -101,7 +124,24 @@ async def _bot_main(
         await _cleanup(room_url, config)
 
         logger.info("Bot has finished. Bye!")
-    await subprocess_session_factory.engine.dispose()
+    
+    # Only dispose engine in multiprocessing mode
+    if concurrency_mode == "multiprocessing":
+        await subprocess_session_factory.engine.dispose()
+
+
+def _bot_thread(
+    params: BotParams,
+    config: BotConfig,
+    room_url: str,
+    room_token: str,
+):
+    """Thread-based bot execution for local development."""
+    logger.remove()
+    logger.add(sys.stderr, level=os.getenv("BOT_LOG_LEVEL", "INFO"))
+    
+    # Use the main process's event loop (shared memory)
+    asyncio.run(_bot_main(params, config, room_url, room_token))
 
 
 def _bot_process(
@@ -110,11 +150,18 @@ def _bot_process(
     room_url: str,
     room_token: str,
 ):
-    # This is a different process so we need to make sure we have the right log level.
+    """Process-based bot execution for production."""
     logger.remove()
     logger.add(sys.stderr, level=os.getenv("BOT_LOG_LEVEL", "INFO"))
-
-    asyncio.run(_bot_main(params, config, room_url, room_token))
+    
+    # Create new event loop for this process
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    
+    try:
+        loop.run_until_complete(_bot_main(params, config, room_url, room_token))
+    finally:
+        loop.close()
 
 
 async def bot_create(daily_api_key: str):
@@ -148,5 +195,16 @@ def bot_launch(
     room_url: str,
     room_token: str,
 ):
-    process = Process(target=_bot_process, args=(params, config, room_url, room_token))
-    process.start()
+    """Launch bot using environment-appropriate concurrency model."""
+    concurrency_mode = get_concurrency_mode()
+    
+    if concurrency_mode == "multiprocessing":
+        # Production: Use multiprocessing with proper event loop management
+        logger.info("Launching bot in multiprocessing mode (production)")
+        process = Process(target=_bot_process, args=(params, config, room_url, room_token))
+        process.start()
+    else:
+        # Development: Use threading for faster startup and shared memory
+        logger.info("Launching bot in threading mode (development)")
+        thread = threading.Thread(target=_bot_thread, args=(params, config, room_url, room_token))
+        thread.start()

@@ -183,30 +183,10 @@ async def generate_and_store_conversation_metrics(
 async def _extract_metrics_from_opentelemetry(conversation_id: str, db_session: Optional[AsyncSession] = None):
     """Extract metrics using OpenTelemetry/Pipecat built-in metrics."""
     try:
-        from bots.opentelemetry_metrics import collect_pipecat_metrics
-        from common.models import Message
-        from sqlalchemy import select
-        
-        # Get the first message as the target for metrics
-        if db_session:
-            result = await db_session.execute(
-                select(Message).where(Message.conversation_id == conversation_id).order_by(Message.message_number).limit(1)
-            )
-            first_message = result.scalar_one_or_none()
-        else:
-            async with default_session_factory() as session:
-                result = await session.execute(
-                    select(Message).where(Message.conversation_id == conversation_id).order_by(Message.message_number).limit(1)
-                )
-                first_message = result.scalar_one_or_none()
-        
-        if not first_message:
-            logger.warning(f"📊 No messages found for conversation {conversation_id}")
-            return
-        
-        # Collect metrics using Pipecat's built-in system
-        await collect_pipecat_metrics(conversation_id, first_message.message_id, db_session)
-        logger.info(f"📊 Successfully collected metrics using Pipecat for conversation {conversation_id}")
+        # For now, skip metrics collection to avoid hardcoded data
+        # TODO: Implement proper OpenTelemetry metrics collection
+        logger.warning(f"📊 Skipping metrics collection for conversation {conversation_id} - OpenTelemetry integration not fully implemented")
+        return
         
     except Exception as e:
         logger.error(f"❌ Failed to collect Pipecat metrics: {e}")

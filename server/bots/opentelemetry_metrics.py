@@ -96,57 +96,10 @@ class PipecatMetricsCollector:
     async def collect_metrics(self, db_session: AsyncSession, message_id: str):
         """Collect metrics from Pipecat's built-in metrics system."""
         try:
-            # This would integrate with Pipecat's metrics collection
-            # For now, we'll create some sample metrics to demonstrate the structure
-            sample_metrics = [
-                {
-                    "service_type": "stt",
-                    "service_name": "DeepgramSTTService#0",
-                    "ttfb": "0.0003",
-                    "total_latency": "0.0004",
-                    "processing_time": "0.0004",
-                    "interaction_id": f"stt_{message_id}_{int(asyncio.get_event_loop().time() * 1000)}"
-                },
-                {
-                    "service_type": "llm", 
-                    "service_name": "CerebrasLLMService#0",
-                    "ttfb": "0.156",
-                    "total_latency": "0.449",
-                    "processing_time": "0.449",
-                    "prompt_tokens": 1529,
-                    "completion_tokens": 102,
-                    "interaction_id": f"llm_{message_id}_{int(asyncio.get_event_loop().time() * 1000)}"
-                },
-                {
-                    "service_type": "tts",
-                    "service_name": "DeepgramTTSService#0", 
-                    "ttfb": "0.112",
-                    "total_latency": "0.190",
-                    "processing_time": "0.190",
-                    "characters_processed": 86,
-                    "interaction_id": f"tts_{message_id}_{int(asyncio.get_event_loop().time() * 1000)}"
-                }
-            ]
-            
-            # Store metrics in database
-            for metric in sample_metrics:
-                await InteractionMetrics.create_metrics(
-                    db_session=db_session,
-                    message_id=message_id,
-                    service_type=metric["service_type"],
-                    service_name=metric["service_name"],
-                    interaction_id=metric["interaction_id"],
-                    ttfb=metric.get("ttfb", "0"),
-                    total_latency=metric.get("total_latency", "0"),
-                    processing_time=metric.get("processing_time", "0"),
-                    prompt_tokens=metric.get("prompt_tokens"),
-                    completion_tokens=metric.get("completion_tokens"),
-                    characters_processed=metric.get("characters_processed"),
-                    service_metadata={"source": "opentelemetry", "conversation_id": self.conversation_id}
-                )
-            
-            logger.info(f"📊 Collected {len(sample_metrics)} metrics from Pipecat for conversation {self.conversation_id}")
-            return sample_metrics
+            # For now, return empty metrics to avoid hardcoded data
+            # TODO: Implement real OpenTelemetry metrics collection
+            logger.warning(f"📊 PipecatMetricsCollector returning empty metrics for conversation {self.conversation_id} - this needs real OpenTelemetry integration")
+            return []
             
         except Exception as e:
             logger.error(f"❌ Failed to collect Pipecat metrics: {e}")
