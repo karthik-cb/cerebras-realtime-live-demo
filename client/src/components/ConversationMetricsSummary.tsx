@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ChevronDown, ChevronRight, Clock, Zap, Mic, Brain, Volume2, BarChart3 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Clock, Zap, Mic, Brain, Volume2, BarChart3, Bug, Eye, EyeOff, Table, Grid3X3 } from 'lucide-react';
+import MetricsTable from './MetricsTable';
 
 interface ServiceBreakdown {
   count: number;
@@ -66,16 +67,11 @@ const formatTokens = (tokens: number) => {
   return tokens.toLocaleString();
 };
 
-const getPerformanceGrade = (latency: number) => {
-  if (latency < 0.5) return { grade: "A+", color: "text-green-600", bg: "bg-green-50" };
-  if (latency < 1.0) return { grade: "A", color: "text-green-600", bg: "bg-green-50" };
-  if (latency < 2.0) return { grade: "B", color: "text-yellow-600", bg: "bg-yellow-50" };
-  if (latency < 3.0) return { grade: "C", color: "text-orange-600", bg: "bg-orange-50" };
-  return { grade: "D", color: "text-red-600", bg: "bg-red-50" };
-};
 
 export default function ConversationMetricsSummary({ metrics }: ConversationMetricsSummaryProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [showDebugMode, setShowDebugMode] = useState(false);
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
 
   if (!metrics) {
     return null;
@@ -86,35 +82,58 @@ export default function ConversationMetricsSummary({ metrics }: ConversationMetr
   }
 
   const { total_messages, total_latency, total_tokens, service_breakdown } = metrics;
-  const overallGrade = getPerformanceGrade(total_latency);
 
   return (
     <div className="mt-4 mb-4">
-      <Button
-        variant="outline"
-        size="sm"
-        className="h-12 px-4 text-sm font-medium bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200 hover:from-blue-100 hover:to-purple-100"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        {isOpen ? (
-          <ChevronDown className="h-4 w-4 mr-2" />
-        ) : (
-          <ChevronRight className="h-4 w-4 mr-2" />
-        )}
-        <BarChart3 className="h-4 w-4 mr-2" />
-        Performance Analytics
-        <Badge variant="secondary" className="ml-2">
-          {total_messages} messages
-        </Badge>
-        <div className={`ml-2 px-2 py-1 rounded-full text-xs font-bold ${overallGrade.bg} ${overallGrade.color}`}>
-          {overallGrade.grade}
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-12 px-4 text-sm font-medium bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200 hover:from-blue-100 hover:to-purple-100 flex-1 text-orange-600 hover:text-orange-700"
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          {isOpen ? (
+            <ChevronDown className="h-4 w-4 mr-2" />
+          ) : (
+            <ChevronRight className="h-4 w-4 mr-2" />
+          )}
+          <BarChart3 className="h-4 w-4 mr-2" />
+          Performance Analytics
+          <Badge variant="secondary" className="ml-2">
+            {total_messages} messages
+          </Badge>
+        </Button>
+        
+        <div className="flex gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-12 px-3 text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => setViewMode(viewMode === 'table' ? 'cards' : 'table')}
+            title={viewMode === 'table' ? "Switch to card view" : "Switch to table view"}
+          >
+            {viewMode === 'table' ? <Grid3X3 className="h-4 w-4" /> : <Table className="h-4 w-4" />}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-12 px-3 text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => setShowDebugMode(!showDebugMode)}
+            title={showDebugMode ? "Hide debug info" : "Show debug info"}
+          >
+            {showDebugMode ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </Button>
         </div>
-      </Button>
+      </div>
       
       {isOpen && (
         <div className="mt-4 space-y-4">
-          {/* Overall Summary */}
-          <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20">
+          {viewMode === 'table' ? (
+            <MetricsTable metrics={metrics} />
+          ) : (
+            <>
+              {/* Overall Summary */}
+              <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 <BarChart3 className="h-5 w-5" />
@@ -150,7 +169,6 @@ export default function ConversationMetricsSummary({ metrics }: ConversationMetr
             {Object.entries(service_breakdown).map(([serviceType, data]) => {
               if (data.count === 0) return null;
               
-              const serviceGrade = getPerformanceGrade(data.avg_latency);
               const serviceNames = {
                 'stt': 'Speech-to-Text',
                 'llm': 'Language Model', 
@@ -169,9 +187,6 @@ export default function ConversationMetricsSummary({ metrics }: ConversationMetr
                         <Badge className={getServiceColor(serviceType)}>
                           {data.count} call{data.count !== 1 ? 's' : ''}
                         </Badge>
-                        <div className={`px-2 py-1 rounded-full text-xs font-bold ${serviceGrade.bg} ${serviceGrade.color}`}>
-                          {serviceGrade.grade}
-                        </div>
                       </div>
                     </CardTitle>
                   </CardHeader>
@@ -261,6 +276,28 @@ export default function ConversationMetricsSummary({ metrics }: ConversationMetr
               </div>
             </CardContent>
           </Card>
+            </>
+          )}
+
+          {/* Debug Mode - Raw Data */}
+          {showDebugMode && (
+            <Card className="bg-gray-50 border-gray-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Bug className="h-4 w-4" />
+                  Debug Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="text-xs">
+                  <div className="mb-2 text-muted-foreground">Raw metrics data:</div>
+                  <pre className="bg-gray-100 p-3 rounded text-xs overflow-x-auto border">
+                    {JSON.stringify(metrics, null, 2)}
+                  </pre>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
     </div>

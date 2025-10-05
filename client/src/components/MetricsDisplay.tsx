@@ -192,11 +192,20 @@ export default function MetricsDisplay({ metrics }: MetricsDisplayProps) {
                     {metric.service_metadata && Object.keys(metric.service_metadata).length > 0 && (
                       <details className="text-xs">
                         <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-                          Metadata
+                          Additional Info
                         </summary>
-                        <pre className="mt-1 p-2 bg-muted rounded text-xs overflow-x-auto">
-                          {JSON.stringify(metric.service_metadata, null, 2)}
-                        </pre>
+                        <div className="mt-1 p-2 bg-muted rounded text-xs">
+                          {Object.entries(metric.service_metadata).map(([key, value]) => (
+                            <div key={key} className="flex justify-between py-1">
+                              <span className="text-muted-foreground capitalize">
+                                {key.replace(/_/g, ' ')}:
+                              </span>
+                              <span className="font-medium">
+                                {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
                       </details>
                     )}
                   </div>

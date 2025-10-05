@@ -343,10 +343,19 @@ export const WebSocketVoiceChat: React.FC = () => {
                         </p>
                         {message.metadata && (
                           <div className="mt-2 p-2 bg-gray-100 rounded text-xs">
-                            <strong>Metadata:</strong>
-                            <pre className="mt-1 text-xs overflow-x-auto">
-                              {JSON.stringify(message.metadata, null, 2)}
-                            </pre>
+                            <strong>Additional Info:</strong>
+                            <div className="mt-1 space-y-1">
+                              {Object.entries(message.metadata).map(([key, value]) => (
+                                <div key={key} className="flex justify-between">
+                                  <span className="text-gray-600 capitalize">
+                                    {key.replace(/_/g, ' ')}:
+                                  </span>
+                                  <span className="font-medium">
+                                    {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>
