@@ -1,6 +1,13 @@
 """
-Pipecat metrics capture utility that intercepts logged metrics and stores them in the database.
-Based on Pipecat's built-in metrics logging format.
+DEPRECATED: Pipecat metrics capture utility that intercepts logged metrics and stores them in the database.
+
+This module is deprecated in favor of the simpler log-based metrics approach
+in bots/log_based_metrics.py. The log-based approach is more reliable and
+easier to maintain.
+
+Use bots/log_based_metrics.py for new metrics collection needs.
+
+Original purpose: Based on Pipecat's built-in metrics logging format.
 """
 
 import re
@@ -13,9 +20,14 @@ from common.models import InteractionMetrics
 
 
 class PipecatMetricsCapture:
-    """Captures metrics from Pipecat's built-in logging and stores them in the database."""
+    """
+    DEPRECATED: Captures metrics from Pipecat's built-in logging and stores them in the database.
+    
+    This class is deprecated. Use LogBasedMetricsExtractor from bots/log_based_metrics.py instead.
+    """
     
     def __init__(self, db_session: AsyncSession, message_id: str):
+        logger.warning("⚠️ PipecatMetricsCapture is deprecated. Use LogBasedMetricsExtractor instead.")
         self.db_session = db_session
         self.message_id = message_id
         self.interaction_id = f"pipecat_{int(asyncio.get_event_loop().time() * 1000)}"

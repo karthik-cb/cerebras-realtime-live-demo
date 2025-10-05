@@ -1,5 +1,6 @@
 import asyncio
 import os
+import threading
 
 from typing import Awaitable, Callable
 
@@ -16,6 +17,26 @@ from loguru import logger
 DEFAULT_MAX_PARTICIPANT_JOIN_SECONDS = 20
 
 
+def should_handle_sigint():
+    """Determine if signal handling should be enabled based on environment."""
+    # Signal handling only works in the main thread of the main interpreter
+    # In threading mode, we're not in the main thread, so disable signal handling
+    environment = os.getenv("ENVIRONMENT", "development").lower()
+    is_railway = bool(os.getenv("RAILWAY_ENVIRONMENT"))
+    is_production = environment == "production" or is_railway
+    
+    # Only enable signal handling in production (multiprocessing) mode
+    # or when running in the main thread
+    is_main_thread = threading.current_thread() is threading.main_thread()
+    
+    should_handle = is_production or is_main_thread
+    
+    if not should_handle:
+        logger.debug("Signal handling disabled (running in worker thread)")
+    
+    return should_handle
+
+
 class BotPipelineRunner:
     def __init__(self, conversation_id: str = None):
         self._participant_joined = False
@@ -29,10 +50,15 @@ class BotPipelineRunner:
         self._task = None
 
     async def start(
-        self, create_task: Callable[[BotCallbacks], Awaitable[PipelineTask]], handle_sigint=True
+        self, create_task: Callable[[BotCallbacks], Awaitable[PipelineTask]], handle_sigint=None
     ):
         self._task = await create_task(self._callbacks)
 
+        # Determine signal handling based on environment and thread context
+        if handle_sigint is None:
+            handle_sigint = should_handle_sigint()
+        
+        logger.debug(f"PipelineRunner signal handling: {handle_sigint}")
         runner = PipelineRunner(handle_sigint=handle_sigint)
 
         pipeline_task = asyncio.create_task(runner.run(self._task))

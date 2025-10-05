@@ -74,6 +74,7 @@ async def _pipeline_task(
     async def create_task(callbacks: BotCallbacks) -> PipelineTask:
         pipeline = await bot_pipeline(params, config, callbacks, room_url, room_token, db)
 
+        tracing_enabled = os.getenv("ENABLE_TRACING", "0") not in ("0", "false", "False", "")
         task = PipelineTask(
             pipeline,
             params=PipelineParams(
@@ -82,9 +83,9 @@ async def _pipeline_task(
                 enable_usage_metrics=True,
                 send_initial_empty_metrics=False,
             ),
-            enable_tracing=True,  # Enable OpenTelemetry tracing
-            enable_turn_tracking=True,  # Enable turn tracking
-            conversation_id=params.conversation_id,  # Set conversation ID for tracing
+            enable_tracing=tracing_enabled,
+            enable_turn_tracking=tracing_enabled,
+            conversation_id=params.conversation_id,
         )
 
         return task

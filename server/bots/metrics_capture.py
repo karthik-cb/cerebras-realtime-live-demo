@@ -1,6 +1,13 @@
 """
-Metrics capture utility for tracking latency and usage metrics in real-time conversations.
-Based on Deepgram and Pipecat metrics documentation.
+DEPRECATED: Metrics capture utility for tracking latency and usage metrics in real-time conversations.
+
+This module is deprecated in favor of the simpler log-based metrics approach
+in bots/log_based_metrics.py. The log-based approach is more reliable and
+easier to maintain.
+
+Use bots/log_based_metrics.py for new metrics collection needs.
+
+Original purpose: Based on Deepgram and Pipecat metrics documentation.
 """
 
 import asyncio
@@ -14,9 +21,14 @@ from common.models import InteractionMetrics
 
 
 class MetricsCollector:
-    """Collects and stores interaction metrics for different services."""
+    """
+    DEPRECATED: Collects and stores interaction metrics for different services.
+    
+    This class is deprecated. Use LogBasedMetricsExtractor from bots/log_based_metrics.py instead.
+    """
     
     def __init__(self, db_session: AsyncSession, message_id: str):
+        logger.warning("⚠️ MetricsCollector is deprecated. Use LogBasedMetricsExtractor instead.")
         self.db_session = db_session
         self.message_id = message_id
         self.interaction_id = str(uuid.uuid4())

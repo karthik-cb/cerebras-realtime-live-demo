@@ -267,7 +267,7 @@ async def get_conversation_messages(
         }
     }
     
-    # Aggregate metrics from all messages
+    # Aggregate metrics from all messages (fallback to processing_time when total_latency missing)
     for msg in messages_with_metrics:
         if msg.metrics:
             for metric in msg.metrics:
@@ -276,21 +276,31 @@ async def get_conversation_messages(
                     # Update service breakdown
                     service_data = conversation_metrics["service_breakdown"][service_type]
                     service_data["count"] += 1
-                    
+
+                    latency = None
                     if metric.total_latency:
                         latency = float(metric.total_latency)
+                    elif getattr(metric, "processing_time", None):
+                        try:
+                            latency = float(metric.processing_time)
+                        except Exception:
+                            latency = None
+                    if latency is not None:
                         service_data["total_latency"] += latency
                         conversation_metrics["total_latency"] += latency
-                    
+
                     if metric.prompt_tokens:
                         conversation_metrics["total_tokens"] += metric.prompt_tokens
-                        service_data["total_tokens"] += metric.prompt_tokens
-                    
+                        # llm breakdown holds tokens; guard existence
+                        if "total_tokens" in service_data:
+                            service_data["total_tokens"] += metric.prompt_tokens
+
                     if metric.completion_tokens:
                         conversation_metrics["total_tokens"] += metric.completion_tokens
-                        service_data["total_tokens"] += metric.completion_tokens
-                    
-                    if metric.characters_processed:
+                        if "total_tokens" in service_data:
+                            service_data["total_tokens"] += metric.completion_tokens
+
+                    if metric.characters_processed and "total_characters" in service_data:
                         service_data["total_characters"] += metric.characters_processed
     
     # Calculate averages

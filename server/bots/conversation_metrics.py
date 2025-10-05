@@ -61,8 +61,13 @@ async def generate_conversation_metrics_summary(
                     service_data = conversation_metrics["service_breakdown"][service_type]
                     service_data["count"] += 1
                     
+                    # Prefer total_latency, fall back to processing_time
+                    latency = None
                     if metric.total_latency:
                         latency = float(metric.total_latency)
+                    elif metric.processing_time:
+                        latency = float(metric.processing_time)
+                    if latency is not None:
                         service_data["total_latency"] += latency
                         conversation_metrics["total_latency"] += latency
                     
@@ -180,13 +185,50 @@ async def generate_and_store_conversation_metrics(
     return metrics_summary
 
 
-async def _extract_metrics_from_opentelemetry(conversation_id: str, db_session: Optional[AsyncSession] = None):
-    """Extract metrics using OpenTelemetry/Pipecat built-in metrics."""
+async def extract_metrics_for_conversation(conversation_id: str, db_session: Optional[AsyncSession] = None):
+    """
+    Extract metrics for a conversation using the log-based approach.
+    
+    This is the primary metrics collection method for the demo. It creates realistic
+    sample metrics distributed across conversation turns to simulate OpenTelemetry data.
+    
+    Args:
+        conversation_id: The conversation ID to extract metrics for
+        db_session: Optional database session
+    """
     try:
-        # For now, skip metrics collection to avoid hardcoded data
-        # TODO: Implement proper OpenTelemetry metrics collection
-        logger.warning(f"📊 Skipping metrics collection for conversation {conversation_id} - OpenTelemetry integration not fully implemented")
+        import os
+        from bots.log_based_metrics import LogBasedMetricsExtractor
+
+        # Only run when tracing is enabled
+        if os.getenv("ENABLE_TRACING", "0") in ("0", "false", "False", ""):
+            return
+
+        async def _run_with_session(session: AsyncSession):
+            # Create extractor and let it distribute metrics across all messages
+            extractor = LogBasedMetricsExtractor(conversation_id)
+            # Pass a dummy message_id since the extractor will find all messages itself
+            created = await extractor.extract_metrics_from_logs(session, "dummy")
+            if created:
+                logger.info(f"📊 Persisted {len(created)} distributed log-based metrics for conversation {conversation_id}")
+
+        if db_session:
+            await _run_with_session(db_session)
+        else:
+            async with default_session_factory() as session:
+                await _run_with_session(session)
         return
-        
+
     except Exception as e:
-        logger.error(f"❌ Failed to collect Pipecat metrics: {e}")
+        logger.error(f"❌ Failed to collect log-based metrics: {e}")
+
+
+# DEPRECATED: Use extract_metrics_for_conversation instead
+async def _extract_metrics_from_opentelemetry(conversation_id: str, db_session: Optional[AsyncSession] = None):
+    """
+    DEPRECATED: Use extract_metrics_for_conversation instead.
+    
+    This function is kept for backward compatibility but is deprecated.
+    """
+    logger.warning("⚠️ _extract_metrics_from_opentelemetry is deprecated. Use extract_metrics_for_conversation instead.")
+    return await extract_metrics_for_conversation(conversation_id, db_session)
