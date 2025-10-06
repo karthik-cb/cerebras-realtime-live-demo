@@ -44,11 +44,11 @@ const getServiceIcon = (serviceType: string) => {
 const getServiceColor = (serviceType: string) => {
   switch (serviceType) {
     case 'stt':
-      return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+      return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
     case 'llm':
-      return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
+      return 'bg-orange-200 text-orange-900 dark:bg-orange-800 dark:text-orange-100';
     case 'tts':
-      return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+      return 'bg-orange-300 text-orange-900 dark:bg-orange-700 dark:text-orange-100';
     default:
       return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
   }
@@ -143,19 +143,19 @@ export default function ConversationMetricsSummary({ metrics }: ConversationMetr
             <CardContent className="pt-0">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">{total_messages}</div>
+                  <div className="text-2xl font-bold text-orange-600">{total_messages}</div>
                   <div className="text-sm text-muted-foreground">Messages</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">{formatLatency(total_latency)}</div>
+                  <div className="text-2xl font-bold text-orange-700">{formatLatency(total_latency)}</div>
                   <div className="text-sm text-muted-foreground">Total Latency</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-600">{formatTokens(total_tokens)}</div>
+                  <div className="text-2xl font-bold text-orange-800">{formatTokens(total_tokens)}</div>
                   <div className="text-sm text-muted-foreground">Total Tokens</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-orange-600">
+                  <div className="text-2xl font-bold text-orange-900">
                     {formatLatency(total_latency / total_messages)}
                   </div>
                   <div className="text-sm text-muted-foreground">Avg per Message</div>

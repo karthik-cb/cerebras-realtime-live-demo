@@ -188,7 +188,7 @@ export default function Settings({ vision }: Props) {
             </div>
           </div>
 
-          {/* Vision Settings */}
+          {/* Vision Settings - Only shown when vision is enabled */}
           {vision && (
             <div className="flex flex-col gap-2">
               {/* <h3 className="text-sm font-semibold mb-2">Vision</h3> */}
@@ -277,63 +277,65 @@ export default function Settings({ vision }: Props) {
             </div>
           )}
 
-          {/* Conversation Type Selection */}
-          <div className="flex flex-col gap-2">
-            <Label className="text-base font-normal" htmlFor="conversation-type">
-              Conversation Mode
-            </Label>
-            <Select
-              onValueChange={(type: "voice-to-voice" | "text-voice") => {
-                if (type === "text-voice") {
-                  // Create a new conversation for text-voice mode
-                  fetch(`${import.meta.env.VITE_SERVER_URL}/conversations`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({}),
-                  })
-                    .then((response) => response.json())
-                    .then((json) => {
-                      // Update URL and state
-                      const searchParams = new URLSearchParams();
-                      searchParams.append("c", json.conversation_id);
-                      history.replaceState(null, "", `/?${searchParams.toString()}`);
-                      window.location.reload();
-                    });
-                } else {
-                  // Switch to voice-to-voice mode
-                  const searchParams = new URLSearchParams();
-                  history.replaceState(null, "", `/?${searchParams.toString()}`);
-                  window.location.reload();
-                }
-              }}
-              value={conversationType || "voice-to-voice"}
-            >
-              <SelectTrigger className="w-full text-start" id="conversation-type">
-                <BotIcon className="flex-none text-muted" size={24} />
-                <SelectValue
-                  className="overflow-hidden text-ellipsis"
-                  placeholder="Select…"
-                />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="voice-to-voice">
-                  <div className="flex flex-col">
-                    <span className="font-medium">Real-Time Voice AI</span>
-                    <span className="text-xs text-muted-foreground">STT-LLM-TTS pipeline</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="text-voice">
-                  <div className="flex flex-col">
-                    <span className="font-medium">Pipecat Multi-Modal</span>
-                    <span className="text-xs text-muted-foreground">WebRTC with Gemini</span>
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Conversation Type Selection - Only shown when conversation modes are enabled */}
+          {import.meta.env.VITE_DISABLE_CONVERSATION_MODES !== "1" && (
+            <div className="flex flex-col gap-2">
+              <Label className="text-base font-normal" htmlFor="conversation-type">
+                Conversation Mode
+              </Label>
+              <Select
+                onValueChange={(type: "voice-to-voice" | "text-voice") => {
+                  if (type === "text-voice") {
+                    // Create a new conversation for text-voice mode
+                    fetch(`${import.meta.env.VITE_SERVER_URL}/conversations`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({}),
+                    })
+                      .then((response) => response.json())
+                      .then((json) => {
+                        // Update URL and state
+                        const searchParams = new URLSearchParams();
+                        searchParams.append("c", json.conversation_id);
+                        history.replaceState(null, "", `/?${searchParams.toString()}`);
+                        window.location.reload();
+                      });
+                  } else {
+                    // Switch to voice-to-voice mode
+                    const searchParams = new URLSearchParams();
+                    history.replaceState(null, "", `/?${searchParams.toString()}`);
+                    window.location.reload();
+                  }
+                }}
+                value={conversationType || "voice-to-voice"}
+              >
+                <SelectTrigger className="w-full text-start" id="conversation-type">
+                  <BotIcon className="flex-none text-muted" size={24} />
+                  <SelectValue
+                    className="overflow-hidden text-ellipsis"
+                    placeholder="Select…"
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="voice-to-voice">
+                    <div className="flex flex-col">
+                      <span className="font-medium">Real-Time Voice AI</span>
+                      <span className="text-xs text-muted-foreground">STT-LLM-TTS pipeline</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="text-voice">
+                    <div className="flex flex-col">
+                      <span className="font-medium">Pipecat Multi-Modal</span>
+                      <span className="text-xs text-muted-foreground">WebRTC with Gemini</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
-          {/* Interaction mode */}
-          {conversationType === "text-voice" && (
+          {/* Interaction mode - Only shown when conversation modes are enabled */}
+          {conversationType === "text-voice" && import.meta.env.VITE_DISABLE_CONVERSATION_MODES !== "1" && (
             <div className="flex flex-col gap-2">
               {/* <h3 className="text-sm font-semibold mb-2">Vision</h3> */}
               <div className="flex flex-col gap-1">

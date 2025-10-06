@@ -82,8 +82,10 @@ export function ClientPage() {
       transport = new DailyTransport();
     }
 
+    const visionEnabled = conversationType === "text-voice" && import.meta.env.VITE_DISABLE_VISION !== "1";
+    
     const newClient = new RTVIClient({
-      enableCam: false,
+      enableCam: false, // Always disabled for voice-only application
       enableMic: conversationType === "voice-to-voice",
       transport: transport,
       params: {
@@ -93,8 +95,7 @@ export function ClientPage() {
           action: "/bot/action",
         },
         requestData: {
-          bot_profile:
-            conversationType === "text-voice" ? "vision" : "voice-to-voice",
+          bot_profile: visionEnabled ? "vision" : "voice-to-voice",
           conversation_id: "",
           model_preferences: modelPreferences,
         },
@@ -305,7 +306,7 @@ export function ClientPage() {
       </div>
 
       <RTVIClientAudio />
-      <Settings vision={conversationType === "text-voice"} />
+      <Settings vision={conversationType === "text-voice" && import.meta.env.VITE_DISABLE_VISION !== "1"} />
       <DeleteConversationModal />
     </RTVIClientProvider>
   );

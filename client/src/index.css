@@ -5,7 +5,8 @@
 :root {
   --sidebar-width: 320px;
 
-  --primary: 156 72% 60%;
+  /* Cerebras Orange Brand Colors */
+  --primary: 15 100% 60%; /* #FF6B35 - Cerebras Orange */
   --primary-foreground: 0 0% 10%;
   --accent: var(--primary);
   --accent-foreground: var(--primary-foreground);

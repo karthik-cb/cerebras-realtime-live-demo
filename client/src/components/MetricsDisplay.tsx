@@ -42,13 +42,13 @@ const getServiceIcon = (serviceType: string) => {
 const getServiceColor = (serviceType: string) => {
   switch (serviceType) {
     case 'stt':
-      return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-    case 'llm':
-      return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
-    case 'tts':
-      return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-    case 'mcp':
       return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
+    case 'llm':
+      return 'bg-orange-200 text-orange-900 dark:bg-orange-800 dark:text-orange-100';
+    case 'tts':
+      return 'bg-orange-300 text-orange-900 dark:bg-orange-700 dark:text-orange-100';
+    case 'mcp':
+      return 'bg-orange-400 text-orange-900 dark:bg-orange-600 dark:text-orange-100';
     default:
       return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
   }
