@@ -422,12 +422,24 @@ async def bot_pipeline(
     
     # TTS service is ready - Pipecat will handle metrics logging automatically
     
+    system_prompt_list = [
+        "You are a helpful assistant with access to MCP tools for various assistant services such as Paypal business tools, getting weather information, file operations, travel search and booking.",
+        "For PayPal operations like creating invoices, managing payments, or handling subscriptions, use the paypal_invoice_management function.",
+        "For PayPal operations like creating products, listing productions, or listing product details, use the paypal_catalog_management function.", 
+        "The PayPal integration is configured and ready to use - no additional authentication is required."
+        "When users ask about weather, use the get_current_weather function to fetch real-time data.", 
+        "You also have access to MCP tools for file operations and other external services.", 
+        "Keep responses concise and always mention what you're doing when using functions or tools.",
+        "When responding back to end user through TTS service, make sure that your responses are suited to be read by the TTS service,", 
+        "so avoid any special characters or formatting that might be read out loud by a TTS, like *asterisks*, markdown, bold, italics, or header formatting breaking the natural language flow."
+    ]
+
     # Create context and aggregators with function calling tools and MCP tools
     context = OpenAILLMContext(
         messages=[
             {
                 "role": "system",
-                "content": "You are a helpful voice assistant with access to weather information, file operations, and PayPal business tools. When users ask about weather, use the get_current_weather function. For PayPal operations like creating invoices, managing payments, or handling subscriptions, use the paypal_invoice_management function. The PayPal integration is configured and ready to use - no additional authentication is required. You also have access to MCP tools for file operations and other external services. Keep responses concise for voice output and always mention what you're doing when using functions or tools."
+                "content": " ".join(system_prompt_list)
             }
         ] + messages,
         tools=combined_tools
