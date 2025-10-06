@@ -1,6 +1,8 @@
 import ChatControls from "@/components/ChatControls";
 import ChatMessages from "@/components/ChatMessages";
 import DeleteConversationModal from "@/components/DeleteConversationModal";
+import { ExamplePrompts } from "@/components/ExamplePrompts";
+import { MCPToolsOverview } from "@/components/MCPToolsOverview";
 import Settings from "@/components/Settings";
 import { Button } from "@/components/ui/button";
 import {
@@ -229,15 +231,27 @@ export function ClientPage() {
               </h2>
             </div>
           ) : (
-            <div className="flex flex-col gap-12 items-center justify-center h-full my-auto">
+            <div className="flex flex-col gap-8 items-center justify-center h-full my-auto px-4">
               <div className="flex flex-col gap-4 items-center text-center">
                 <h2 className="font-light text-2xl text-center text-neutral-700">
                   Real-Time Voice AI Agent
                 </h2>
-                <p className="font-light text-neutral-500 max-w-md">
-                  Use your microphone to have natural conversations with our AI agent powered by Deepgram STT, Cerebras LLM, and Deepgram TTS.
+                <p className="font-light text-neutral-500 max-w-2xl">
+                  Use your microphone to have natural conversations with our AI agent powered by Deepgram STT, Cerebras LLM, and Deepgram TTS. 
+                  The assistant can help with ferry travel planning, PayPal business operations, weather information, file management, and more through integrated MCP tools.
                 </p>
               </div>
+              
+              {/* MCP Tools Overview */}
+              <div className="w-full max-w-4xl">
+                <MCPToolsOverview />
+              </div>
+              
+              {/* Example Prompts */}
+              <div className="w-full max-w-4xl">
+                <ExamplePrompts />
+              </div>
+              
               <div className="flex justify-center">
                 <Button
                   disabled={!websocketEnabled}

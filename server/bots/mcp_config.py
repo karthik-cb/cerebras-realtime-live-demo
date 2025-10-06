@@ -48,6 +48,14 @@ MCP_SERVERS = [
         is_remote=True
     ),
     
+    # Ferryhopper MCP Server (Remote)
+    MCPServerConfig(
+        name="ferryhopper",
+        server_params="https://mcp.ferryhopper.com/mcp",
+        description="Ferry trip planning across 33 countries and 190+ ferry operators - search routes, schedules, and get booking links",
+        is_remote=True
+    ),
+    
     # Database MCP Server (example)
     # MCPServerConfig(
     #     name="database",
@@ -108,6 +116,7 @@ def get_mcp_server_by_name(name: str) -> MCPServerConfig:
 # MCP_FILESYSTEM_ENABLED=true
 # MCP_PAYPAL_SANDBOX_ENABLED=true
 # MCP_PAYPAL_PRODUCTION_ENABLED=false
+# MCP_FERRYHOPPER_ENABLED=true
 # MCP_DATABASE_ENABLED=true
 # MCP_WEATHER_ENABLED=true
 # MCP_CALENDAR_ENABLED=true

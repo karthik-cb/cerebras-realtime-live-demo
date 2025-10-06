@@ -336,6 +336,25 @@ async def bot_pipeline(
                     mcp_tools.append(paypal_function)
                     logger.info(f"✅ PayPal MCP functions registered with environment credentials")
                     
+                elif "ferryhopper" in server_config.name:
+                    logger.info(f"⛴️ Ferryhopper MCP server detected - connecting to public service")
+                    logger.info(f"🔗 MCP Server URL: {server_config.server_params}")
+                    
+                    # Ferryhopper doesn't require authentication - it's a public service
+                    # We'll use the standard MCP client for remote servers
+                    try:
+                        mcp_client = MCPClient(server_params=server_config.server_params)
+                        
+                        # Register MCP tools with the LLM
+                        mcp_tools_schema = await mcp_client.register_tools(llm)
+                        mcp_tools.append(mcp_tools_schema)
+                        logger.info(f"✅ Ferryhopper MCP server connected successfully")
+                        logger.info(f"📝 {server_config.description}")
+                        
+                    except Exception as ferry_error:
+                        logger.warning(f"⚠️ Ferryhopper MCP server connection failed: {ferry_error}")
+                        logger.info(f"💡 Ferryhopper service may be temporarily unavailable")
+                    
             else:
                 # Handle local MCP servers (like filesystem)
                 mcp_client = MCPClient(server_params=server_config.server_params)
@@ -423,12 +442,14 @@ async def bot_pipeline(
     # TTS service is ready - Pipecat will handle metrics logging automatically
     
     system_prompt_list = [
-        "You are a helpful assistant with access to MCP tools for various assistant services such as Paypal business tools, getting weather information, file operations, travel search and booking.",
+        "You are a helpful assistant with access to MCP tools for various assistant services such as PayPal business tools, getting weather information, file operations, ferry trip planning and booking, and travel search.",
         "Your natural mode of interaction is through voice, so you are usually getting the user's voice input, processing that through LLM and responding back in voice to user."
         "For PayPal operations like creating invoices, managing payments, or handling subscriptions, use the paypal_invoice_management function.",
         "For PayPal operations like creating products, listing productions, or listing product details, use the paypal_catalog_management function.", 
         "The PayPal integration is configured and ready to use - no additional authentication is required."
-        "When users ask about weather, use the get_current_weather function to fetch real-time data.", 
+        "When users ask about weather, use the get_current_weather function to fetch real-time data.",
+        "For ferry trip planning, you can help users search for ferry routes, schedules, and prices across Europe and the Mediterranean using Ferryhopper tools.",
+        "When users ask about ferry trips, use the available Ferryhopper MCP tools to search for routes, get port information, and provide booking links.",
         "You also have access to MCP tools for file operations and other external services.", 
         "Keep responses concise and always mention what you're doing when using functions or tools.",
         "When responding back to end user through TTS service, make sure that your responses are suited to be read by the TTS service,", 

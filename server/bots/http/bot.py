@@ -128,8 +128,10 @@ async def http_bot_pipeline(
     combined_tools = ToolsSchema(standard_tools=all_tools)
 
     system_prompt_list = [
-        "You are a helpful assistant with access to weather information and MCP tools.",
-        "When users ask about weather, use the get_current_weather function to fetch real-time data.", 
+        "You are a helpful assistant with access to weather information, ferry trip planning, and MCP tools.",
+        "When users ask about weather, use the get_current_weather function to fetch real-time data.",
+        "For ferry trip planning, you can help users search for ferry routes, schedules, and prices across Europe and the Mediterranean using Ferryhopper tools.",
+        "When users ask about ferry trips, use the available Ferryhopper MCP tools to search for routes, get port information, and provide booking links.",
         "You also have access to MCP tools for file operations and other external services.", 
         "Keep responses concise and always mention what you're doing when using functions or tools.",
         
@@ -140,7 +142,7 @@ async def http_bot_pipeline(
         messages=[
             {
                 "role": "system",
-                "content": "You are a helpful assistant with access to weather information and MCP tools. When users ask about weather, use the get_current_weather function to fetch real-time data. You also have access to MCP tools for file operations and other external services. Keep responses concise and always mention what you're doing when using functions or tools."
+                "content": "You are a helpful assistant with access to weather information, ferry trip planning, and MCP tools. When users ask about weather, use the get_current_weather function to fetch real-time data. For ferry trip planning, you can help users search for ferry routes, schedules, and prices across Europe and the Mediterranean using Ferryhopper tools. When users ask about ferry trips, use the available Ferryhopper MCP tools to search for routes, get port information, and provide booking links. You also have access to MCP tools for file operations and other external services. Keep responses concise and always mention what you're doing when using functions or tools."
             }
         ] + messages,
         tools=combined_tools
