@@ -100,7 +100,7 @@ export function MCPToolsOverview() {
                 {tool.requiresAuth && (
                   <div className="p-2 bg-amber-50 border border-amber-200 rounded-md">
                     <p className="text-xs text-amber-700">
-                      <strong>Setup Required:</strong> Enable in settings and configure authentication
+                      <strong>Setup Required:</strong> Enable in settings tab on the top right of the screen.
                     </p>
                   </div>
                 )}
