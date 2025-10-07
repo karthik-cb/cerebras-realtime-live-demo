@@ -197,13 +197,18 @@ export const WebSocketVoiceChat: React.FC = () => {
       <div className="flex flex-col gap-8 items-center justify-center">
         <span>
           {isDisconnected
-            ? " "
+            ? " "
             : isConnecting
               ? "Connecting…"
               : isConnected
                 ? "Connected"
                 : "Error"}
         </span>
+        {isConnecting && (
+          <div className="text-center text-sm text-muted-foreground max-w-md">
+            <p>Please wait for the beep to ensure you are connected.</p>
+          </div>
+        )}
         <div className="flex items-center gap-8">
           {/* History Button - Show if there's current session history */}
           {conversationHistory.length > 0 && (
