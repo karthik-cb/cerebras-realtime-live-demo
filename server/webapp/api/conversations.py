@@ -2,6 +2,7 @@ import base64
 import mimetypes
 
 from bots.summarize import generate_conversation_summary
+from bots.conversation_metrics import extract_metrics_for_conversation
 from common.config import DEFAULT_LLM_CONTEXT
 from common.models import (
     Attachment,
@@ -249,6 +250,10 @@ async def get_conversation_messages(
             "metrics": [InteractionMetricsModel.model_validate(metric) for metric in msg_metrics]
         }
         messages_with_metrics.append(MessageModel.model_validate(msg_dict))
+
+    # Kick off background metrics extraction for this conversation (idempotent/log-based)
+    # This ensures Performance Analytics stays up-to-date per conversation without cross-session interference
+    background_tasks.add_task(extract_metrics_for_conversation, conversation_id, db)
 
     # Generate title summary if conversation has no title and has more than 3 messages
     message_count = len(messages)
